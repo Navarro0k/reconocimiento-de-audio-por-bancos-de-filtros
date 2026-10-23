@@ -14,6 +14,7 @@ urllib.request.install_opener(opener)
 aves = {
     "Copeton": ("Zonotrichia", "capensis"),
     "Bichofue": ("Pitangus", "sulphuratus"),
+    "Mirla": ("Turdus", "fuscater"),
 }
 
 cantidad_descargas = 100
