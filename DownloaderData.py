@@ -12,8 +12,6 @@ urllib.request.install_opener(opener)
 
 # nombre -> (género, especie)
 aves = {
-    "Copeton": ("Zonotrichia", "capensis"),
-    "Bichofue": ("Pitangus", "sulphuratus"),
     "Mirla": ("Turdus", "fuscater"),
 }
 
