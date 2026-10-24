@@ -9,7 +9,7 @@
 ![Interfaz](https://img.shields.io/badge/UI-CustomTkinter-1f6feb)
 ![Datos](https://img.shields.io/badge/Datos-Xeno--canto-2ea44f)
 
-[📄 **Leer el informe completo**]([URL_DEL_INFORME_EN_GOOGLE_DOCS](https://docs.google.com/document/d/1oCGEv72YOLi84DGnrPT9dZm9Xjg5r96cRKu0KXfORns/edit?usp=sharing))
+[📄 **Leer el informe completo**](https://docs.google.com/document/d/1oCGEv72YOLi84DGnrPT9dZm9Xjg5r96cRKu0KXfORns/edit?usp=sharing)
 
 </div>
 
