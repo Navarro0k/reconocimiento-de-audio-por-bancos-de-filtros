@@ -3,8 +3,15 @@ import urllib.parse
 import json
 import os
 import time
+from dotenv import load_dotenv
 
-API_KEY = os.environ.get("XENO_CANTO_API_KEY", "6c840eb6b70c303527c2e2ec05bb3931b5c3c414")  # no la subas a repositorios públicos
+load_dotenv()
+
+# 2. Busca exactamente el mismo nombre definido en el .env (como string)
+API_KEY = os.environ.get("API_KEY_XENOCANTO")
+
+if not API_KEY:
+    print("Error: No se encontró la API Key")
 
 opener = urllib.request.build_opener()
 opener.addheaders = [("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")]
