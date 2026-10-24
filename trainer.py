@@ -1,55 +1,53 @@
+"""Fase de entrenamiento (lógica). La interfaz está en app.py."""
 import os
 import json
 import numpy as np
 from scipy.io import wavfile
+import core
 
-# Audios ya recortados a 3 s por audioAnalizer.py (audio_3s/<Carpeta_Ave>/*.wav)
-carpeta_principal = "audio_3s"
-carpetas_aves = ["Carpeta_Copeton", "Carpeta_Bichofue", "Carpeta_Mirla"]
-CANTIDAD_SUBBANDAS = 4  # Número de divisiones para los vectores de energía
+CARPETA = "audio_3s"
+AVES = ["Carpeta_Copeton", "Carpeta_Bichofue", "Carpeta_Mirla"]
+COLORES = {"Carpeta_Copeton": "tab:blue", "Carpeta_Bichofue": "tab:orange",
+           "Carpeta_Mirla": "tab:green"}
+RUTA_MODELO = os.path.join("models", "umbrales_energia.json")
 
-vectores_umbrales = {}
 
-print("--- INICIANDO FASE DE ENTRENAMIENTO ---")
-
-for nombre_ave in carpetas_aves:
-    ruta_carpeta = os.path.join(carpeta_principal, nombre_ave)
-    if not os.path.exists(ruta_carpeta):
-        print(f"Advertencia: no existe '{ruta_carpeta}'. Ejecuta primero audioAnalizer.py.")
-        continue
-
-    espectros_acumulados = []
-
-    for archivo in os.listdir(ruta_carpeta):
+def espectros_de_carpeta(ruta):
+    """(fs, [||X(k)|| de cada .wav de la carpeta])"""
+    fs, lista = None, []
+    for archivo in sorted(os.listdir(ruta)):
         if archivo.endswith(".wav"):
-            ruta_archivo = os.path.join(ruta_carpeta, archivo)
-            try:
-                sr, audio_data = wavfile.read(ruta_archivo)
-                x = audio_data.astype(np.float32) / 32768.0
-                y = np.fft.rfft(x)       # FFT (mitad útil: 0 a sr/2)
-                z = np.abs(y)            # magnitud
-                espectros_acumulados.append(z)
-            except Exception as e:
-                print(f"Error procesando {ruta_archivo}: {e}")
+            fs, muestras = wavfile.read(os.path.join(ruta, archivo))
+            lista.append(core.espectro(muestras.astype(np.float32) / 32768.0))
+    return fs, lista
 
-    if not espectros_acumulados:
-        continue
 
-    # Espectro promedio de la carpeta
-    espectro_promedio = np.mean(espectros_acumulados, axis=0)
+def cargar_promedio(ave):
+    """(fs, frec, ||C(k)||_m) de una sola ave. FileNotFoundError si no hay audios."""
+    fs, lista = espectros_de_carpeta(os.path.join(CARPETA, ave))
+    if not lista:
+        raise FileNotFoundError(f"No hay audios en '{CARPETA}/{ave}'.")
+    return fs, core.frecuencias(2 * (len(lista[0]) - 1), fs), core.espectro_promedio(lista)
 
-    # Subbandas y energía E = (1/N) * sum(|X(k)|^2)
-    subbandas = np.array_split(espectro_promedio, CANTIDAD_SUBBANDAS)
-    energias = [float(1 / len(sb) * np.sum(sb ** 2)) for sb in subbandas]
 
-    vectores_umbrales[nombre_ave] = energias
-    print(f"{nombre_ave}: {len(espectros_acumulados)} audios -> "
-          f"energías = {[round(e, 4) for e in energias]}")
+def cargar_promedios():
+    """(fs, frec, {ave: ||C(k)||_m}) de todas las aves disponibles."""
+    fs, frec, promedios = None, None, {}
+    for ave in AVES:
+        try:
+            fs, frec, promedios[ave] = cargar_promedio(ave)
+        except FileNotFoundError:
+            continue
+    if not promedios:
+        raise FileNotFoundError(f"No hay audios en '{CARPETA}'. Ejecuta antes audioAnalizer.py.")
+    return fs, frec, promedios
 
-# Guardar los vectores de umbrales de energía en un archivo plano (JSON)
-os.makedirs("models", exist_ok=True)
-ruta_modelo = os.path.join("models", "umbrales_energia.json")
-with open(ruta_modelo, "w") as f:
-    json.dump(vectores_umbrales, f, indent=4)
 
-print(f"\nEntrenamiento finalizado. Vectores de energía guardados exitosamente en '{ruta_modelo}'.")
+def guardar_modelo(fs, frec, promedios, cortes_hz):
+    """Calcula el vector de energías de cada ave y lo guarda en JSON."""
+    indices = core.indices_de_corte(frec, cortes_hz)
+    vectores = {ave: core.energias_subbandas(z, indices) for ave, z in promedios.items()}
+    os.makedirs(os.path.dirname(RUTA_MODELO), exist_ok=True)
+    with open(RUTA_MODELO, "w") as f:
+        json.dump({"fs": fs, "cortes_hz": sorted(cortes_hz), "energias": vectores}, f, indent=4)
+    return vectores
