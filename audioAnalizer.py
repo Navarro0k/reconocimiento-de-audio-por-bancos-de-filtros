@@ -1,4 +1,5 @@
 import os
+import shutil
 import subprocess
 import numpy as np
 from scipy.io import wavfile
@@ -85,9 +86,26 @@ else:
 #    - De cada audio se toma la ventana de 3 s con mayor energía (evita silencios
 #      y las locuciones del inicio de muchas grabaciones).
 #    - Resultado: audio_3s/<Carpeta_Ave>/<archivo>.wav (mono, FS Hz, normalizado).
+def buscar_ffmpeg():
+    """Devuelve la ruta de ffmpeg: el del sistema o el que trae imageio-ffmpeg."""
+    if shutil.which("ffmpeg"):
+        return "ffmpeg"
+    try:
+        import imageio_ffmpeg
+        return imageio_ffmpeg.get_ffmpeg_exe()
+    except ImportError:
+        raise SystemExit(
+            "No se encontró ffmpeg. Instálalo con:\n"
+            "    pip install imageio-ffmpeg\n"
+            "y vuelve a ejecutar este script.")
+
+
+FFMPEG = buscar_ffmpeg()
+
+
 def cargar_audio(ruta):
     """Decodifica el mp3 a mono float32 a FS Hz usando ffmpeg."""
-    cmd = ["ffmpeg", "-v", "error", "-i", ruta, "-f", "f32le",
+    cmd = [FFMPEG, "-v", "error", "-i", ruta, "-f", "f32le",
            "-ac", "1", "-ar", str(FS), "-"]
     res = subprocess.run(cmd, capture_output=True)
     if res.returncode != 0 or len(res.stdout) == 0:
