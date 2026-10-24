@@ -15,7 +15,7 @@
 
 ---
 
-## ✨ ¿Qué hace?
+##¿Qué hace?
 
 Este proyecto reconoce **tres especies de aves** a partir de su canto, sin redes neuronales: cada especie se resume en un **vector de cuatro energías** y el audio nuevo se asigna a la especie cuyo vector se parece más.
 
