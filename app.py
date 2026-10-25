@@ -10,7 +10,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 import core
 import trainer
 import recognizer
-from preprocesamiento import FS, DURACION, normalizar
+from preprocesamiento import FS, DURACION, normalizar, filtrar
 
 N_CORTES = 3   # -> 4 subbandas
 VERDE = "#c8f0cf"
@@ -196,7 +196,7 @@ class PestanaReconocimiento(ctk.CTkFrame):
             self.estado.configure(text="No se detectó sonido")
             return
         self.estado.configure(text="Listo")
-        x = normalizar(x)
+        x = filtrar(normalizar(x))
         cortes, umbrales = recognizer.cargar_modelo()
         resultados, E_X = recognizer.reconocer(x, cortes, umbrales)
         ganador, _, suma = resultados[0]
