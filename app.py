@@ -21,9 +21,9 @@ def nombre(ave):
 
 
 def rangos(cortes_hz, fmax):
-    """Encabezados de subbanda: 'S1\\n0.0-3.5 kHz', ..."""
+    """Encabezados de subbanda: 'S1 (0.0–3.5 kHz)', ..."""
     lim = [0] + sorted(cortes_hz) + [fmax]
-    return [f"S{i + 1}\n{lim[i] / 1000:.1f}–{lim[i + 1] / 1000:.1f} kHz" for i in range(len(lim) - 1)]
+    return [f"S{i + 1} ({lim[i] / 1000:.1f}–{lim[i + 1] / 1000:.1f} kHz)" for i in range(len(lim) - 1)]
 
 
 def numeros(v):
@@ -31,18 +31,20 @@ def numeros(v):
 
 
 def tabla(padre, encabezados, filas, resaltar=None):
-    """Tabla de etiquetas; la fila `resaltar` se pinta de verde."""
-    marco = ctk.CTkFrame(padre)
+    """Tabla con rejilla; la fila `resaltar` se pinta de verde."""
+    marco = ctk.CTkFrame(padre, fg_color="gray40", corner_radius=0)
     for j, h in enumerate(encabezados):
-        ctk.CTkLabel(marco, text=h, font=ctk.CTkFont(weight="bold"), justify="right",
-                     anchor="w" if j == 0 else "e").grid(row=0, column=j, padx=6, pady=3, sticky="ew")
+        ctk.CTkLabel(marco, text=h, font=ctk.CTkFont(weight="bold", size=12), fg_color="#e8e8e8",
+                     text_color="black", corner_radius=0, anchor="center"
+                     ).grid(row=0, column=j, padx=1, pady=1, sticky="nsew", ipadx=6, ipady=2)
     for i, fila in enumerate(filas):
         gana = i == resaltar
         for j, v in enumerate(fila):
-            ctk.CTkLabel(marco, text=v, text_color="black" if gana else None,
-                         fg_color=VERDE if gana else "transparent", corner_radius=4,
-                         font=ctk.CTkFont(weight="bold" if gana else "normal"),
-                         anchor="w" if j == 0 else "e").grid(row=i + 1, column=j, padx=2, pady=1, sticky="ew")
+            ctk.CTkLabel(marco, text=v, text_color="black", corner_radius=0,
+                         fg_color=VERDE if gana else "white",
+                         font=ctk.CTkFont(weight="bold" if gana else "normal", size=12),
+                         anchor="center"
+                         ).grid(row=i + 1, column=j, padx=1, pady=1, sticky="nsew", ipadx=6, ipady=1)
     return marco
 
 
@@ -212,8 +214,8 @@ class PestanaReconocimiento(ctk.CTkFrame):
         ctk.CTkLabel(self.tablas, text="Vectores de energía", anchor="w",
                      font=ctk.CTkFont(weight="bold")).pack(fill="x")
         filas = [["Grabación X"] + numeros(E_X)]
-        filas += [[f"Umbral {nombre(a)}"] + numeros(umbrales[a]) for a, _, _ in resultados]
-        tabla(self.tablas, [""] + enc, filas).pack(anchor="w", pady=(0, 12))
+        filas += [[f"Promedio {nombre(a)}"] + numeros(umbrales[a]) for a, _, _ in resultados]
+        tabla(self.tablas, ["Vectores"] + enc, filas).pack(anchor="w", pady=(0, 12))
 
         ctk.CTkLabel(self.tablas, text="Diferencias absolutas |E_Xi − E_ave,i|", anchor="w",
                      font=ctk.CTkFont(weight="bold")).pack(fill="x")

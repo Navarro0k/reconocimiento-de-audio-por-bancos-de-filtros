@@ -4,9 +4,8 @@ import json
 import numpy as np
 from scipy.io import wavfile
 import core
-from preprocesamiento import filtrar
 
-CARPETA = "audio_3s"
+CARPETA = "audio_3s"   # WAV de 3 s ya filtrados por audioAnalizer.py
 AVES = ["Carpeta_Copeton", "Carpeta_Bichofue", "Carpeta_Mirla"]
 COLORES = {"Carpeta_Copeton": "tab:blue", "Carpeta_Bichofue": "tab:orange",
            "Carpeta_Mirla": "tab:green"}
@@ -19,7 +18,7 @@ def espectros_de_carpeta(ruta):
     for archivo in sorted(os.listdir(ruta)):
         if archivo.endswith(".wav"):
             fs, muestras = wavfile.read(os.path.join(ruta, archivo))
-            lista.append(core.espectro(filtrar(muestras.astype(np.float32) / 32768.0)))
+            lista.append(core.espectro(muestras.astype(np.float32) / 32768.0))
     return fs, lista
 
 
