@@ -13,6 +13,7 @@ import recognizer
 from preprocesamiento import FS, DURACION, normalizar, filtrar
 
 N_CORTES = 3   # -> 4 subbandas
+SEPARACION_MIN_HZ = 100   # distancia mínima entre cortes (y a 0 Hz / fs/2) para no dejar subbandas vacías
 VERDE = "#c8f0cf"
 
 
@@ -108,8 +109,14 @@ class PestanaEntrenamiento(ctk.CTkFrame):
         if modo or ev.inaxes is not self.ax or not self.promedios:   # zoom/pan activo
             return
         if ev.button == 1 and len(self.cortes) < N_CORTES:
-            self.cortes.append(float(ev.xdata))
-            self.lineas.append(self.ax.axvline(ev.xdata, color="k", ls="--", lw=1))
+            x = float(ev.xdata)
+            limites = [0.0, self.fs / 2] + self.cortes
+            if min(abs(x - c) for c in limites) < SEPARACION_MIN_HZ:
+                self.info.configure(text=f"Corte en {x:.0f} Hz ignorado: debe estar a más de "
+                                         f"{SEPARACION_MIN_HZ} Hz de otro corte y de los extremos.")
+                return
+            self.cortes.append(x)
+            self.lineas.append(self.ax.axvline(x, color="k", ls="--", lw=1))
             self.canvas.draw_idle()
         elif ev.button == 3:
             self.deshacer()
@@ -128,7 +135,11 @@ class PestanaEntrenamiento(ctk.CTkFrame):
         self.info.configure(text=f"Cortes {len(self.cortes)}/{N_CORTES}: {hz}")
 
     def guardar(self):
-        vectores = trainer.guardar_modelo(self.fs, self.frec, self.promedios, self.cortes)
+        try:
+            vectores = trainer.guardar_modelo(self.fs, self.frec, self.promedios, self.cortes)
+        except ValueError as e:
+            messagebox.showerror("Cortes no válidos", f"{e}\n\nDeshaz el corte y marca otro.")
+            return
         for w in self.resultado.winfo_children():
             w.destroy()
         ctk.CTkLabel(self.resultado, anchor="w", text=f"Modelo guardado en {trainer.RUTA_MODELO} "
