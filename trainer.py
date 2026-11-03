@@ -45,10 +45,12 @@ def cargar_promedios():
 
 
 def guardar_modelo(fs, frec, promedios, cortes_hz):
-    """Calcula el vector de energías de cada ave y lo guarda en JSON."""
-    indices = core.indices_de_corte(frec, cortes_hz)
+    """Calcula el vector de energías de cada ave y lo guarda en JSON.
+    ValueError si los cortes dejan alguna subbanda vacía (no se guarda nada)."""
+    indices = core.validar_cortes(frec, cortes_hz)
     vectores = {ave: core.energias_subbandas(z, indices) for ave, z in promedios.items()}
     os.makedirs(os.path.dirname(RUTA_MODELO), exist_ok=True)
     with open(RUTA_MODELO, "w") as f:
-        json.dump({"fs": fs, "cortes_hz": sorted(cortes_hz), "energias": vectores}, f, indent=4)
+        json.dump({"fs": fs, "cortes_hz": sorted(cortes_hz), "energias": vectores}, f, indent=4,
+                  allow_nan=False)
     return vectores
