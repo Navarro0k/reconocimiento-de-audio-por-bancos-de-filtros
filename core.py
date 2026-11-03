@@ -31,8 +31,26 @@ def indices_de_corte(frec, cortes_hz):
     return np.searchsorted(frec, np.sort(cortes_hz))
 
 
+def validar_cortes(frec, cortes_hz):
+    """
+    Lanza ValueError si algún corte deja una subbanda sin muestras.
+    Pasa cuando dos cortes caen en el mismo índice k (p. ej. doble clic en el mismo
+    punto), o un corte queda en 0 Hz o en fs/2: esa subbanda tendría N_i = 0 y
+    E = 0/0 = nan.
+    """
+    indices = indices_de_corte(frec, cortes_hz)
+    limites = np.concatenate(([0], indices, [len(frec)]))
+    vacias = [i + 1 for i in range(len(limites) - 1) if limites[i + 1] <= limites[i]]
+    if vacias:
+        raise ValueError(f"Las subbandas {', '.join(f'S{i}' for i in vacias)} quedan vacías: "
+                         "hay cortes repetidos o en los extremos del espectro.")
+    return indices
+
+
 def energia(subbanda):
     """E = (1/N_i) * sum ||C_i(k)||_m^2"""
+    if len(subbanda) == 0:
+        raise ValueError("Subbanda vacía (N_i = 0): no se puede calcular su energía.")
     return float(np.sum(subbanda ** 2) / len(subbanda))
 
 
