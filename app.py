@@ -210,7 +210,11 @@ class PestanaReconocimiento(ctk.CTkFrame):
             return
         self.estado.configure(text="Listo")
         x = filtrar(normalizar(x))
-        cortes, umbrales = recognizer.cargar_modelo()
+        try:
+            cortes, umbrales = recognizer.cargar_modelo()
+        except ValueError as e:
+            messagebox.showerror("Modelo no válido", str(e))
+            return
         resultados, E_X = recognizer.reconocer(x, cortes, umbrales)
         ganador, _, suma = resultados[0]
         self.mostrar_tablas(cortes, umbrales, resultados, E_X)

@@ -1,5 +1,6 @@
 """Fase de reconocimiento (lógica). La interfaz está en app.py."""
 import json
+import math
 import core
 from preprocesamiento import FS, N
 from trainer import RUTA_MODELO
@@ -9,6 +10,10 @@ def cargar_modelo():
     """(cortes_hz, {ave: vector de umbrales de energía})"""
     with open(RUTA_MODELO) as f:
         m = json.load(f)
+    for ave, vector in m["energias"].items():
+        if any(not math.isfinite(e) for e in vector):
+            raise ValueError(f"El modelo guardado tiene energías nan para {ave} "
+                             "(subbanda vacía por cortes repetidos). Vuelve a entrenar.")
     return m["cortes_hz"], m["energias"]
 
 
