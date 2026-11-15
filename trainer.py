@@ -8,9 +8,8 @@ import core
 from preprocesamiento import acondicionar
 
 CARPETA = "audio_3s"   # WAV de 3 s ya filtrados por audioAnalizer.py
-AVES = ["Carpeta_Copeton", "Carpeta_Bichofue", "Carpeta_Mirla"]
-COLORES = {"Carpeta_Copeton": "tab:blue", "Carpeta_Bichofue": "tab:orange",
-           "Carpeta_Mirla": "tab:green"}
+AVES = ["Carpeta_Copeton", "Carpeta_Mirla"]
+COLORES = {"Carpeta_Copeton": "tab:blue", "Carpeta_Mirla": "tab:green"}
 RUTA_MODELO = os.path.join("models", "vectores_promedio.json")
 METODO = "vector_completo_euclidiana"   # identifica cómo se entrenó el modelo guardado
 # Cómo escoge sugerir_cortes() la partición:

@@ -22,7 +22,7 @@ M_FILTRO = 3                # longitud M de la media móvil (muestras); con M = 
 _filtro = MovingAverageFilter(M_FILTRO)
 
 USAR_PASA_ALTOS = True      # quita el ruido grave (voz, ambiente, zumbido) antes de la FFT
-PASA_ALTOS_HZ = 2000        # frecuencia de corte; el canto de las tres aves está por encima
+PASA_ALTOS_HZ = 2000        # frecuencia de corte; el canto de las aves está por encima
 ORDEN_PASA_ALTOS = 4        # Butterworth
 RMS_OBJETIVO = 0.1          # todas las señales quedan con la misma energía
 _pasa_altos = signal.butter(ORDEN_PASA_ALTOS, PASA_ALTOS_HZ, "highpass", fs=FS, output="sos")

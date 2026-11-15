@@ -14,7 +14,7 @@ carpeta_salida = "audio_3s"
 
 # 1. Definir la carpeta principal y las subcarpetas de las aves
 carpeta_principal = "audio"
-carpetas_aves = ["Carpeta_Copeton", "Carpeta_Bichofue", "Carpeta_Mirla"]
+carpetas_aves = ["Carpeta_Copeton", "Carpeta_Mirla"]
 duraciones = []
 archivos_corruptos = [] # Lista para almacenar los archivos fallidos
 

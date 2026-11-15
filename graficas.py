@@ -6,10 +6,9 @@ import core
 import trainer
 
 carpeta_principal = "audio_3s"
-carpetas_aves = ["Carpeta_Copeton", "Carpeta_Bichofue", "Carpeta_Mirla"]
+carpetas_aves = ["Carpeta_Copeton", "Carpeta_Mirla"]
 carpeta_salida = "graficas"
-colores = {"Carpeta_Copeton": "tab:blue", "Carpeta_Bichofue": "tab:orange",
-           "Carpeta_Mirla": "tab:green"}
+colores = {"Carpeta_Copeton": "tab:blue", "Carpeta_Mirla": "tab:green"}
 
 # Cortes elegidos por el usuario en trainer.py
 with open(trainer.RUTA_MODELO) as f:
