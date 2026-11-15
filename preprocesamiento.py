@@ -8,6 +8,7 @@ de entrenamiento. Todo se aplica igual al entrenar y al reconocer.
   normalizar()    pico a 0.9 y 16 bits, como los WAV de audioAnalizer.py
   filtrar()       media móvil de M puntos             (USAR_FILTRO)
   acondicionar()  pasa-altos y energía unitaria       (USAR_PASA_ALTOS)
+  hay_canto()     descarta grabaciones que son solo ruido de fondo
 """
 import numpy as np
 from scipy import signal
@@ -25,6 +26,8 @@ USAR_PASA_ALTOS = True      # quita el ruido grave (voz, ambiente, zumbido) ante
 PASA_ALTOS_HZ = 2000        # frecuencia de corte; el canto de las aves está por encima
 ORDEN_PASA_ALTOS = 4        # Butterworth
 RMS_OBJETIVO = 0.1          # todas las señales quedan con la misma energía
+UMBRAL_CANTO_DB = 4.0       # un canto sobresale del fondo al menos esto (el ruido solo da ~1.5 dB)
+TRAMA_S = 0.02              # tramas de 20 ms para medirlo
 _pasa_altos = signal.butter(ORDEN_PASA_ALTOS, PASA_ALTOS_HZ, "highpass", fs=FS, output="sos")
 
 
@@ -53,3 +56,18 @@ def acondicionar(x):
         x = signal.sosfilt(_pasa_altos, x)
     rms = np.sqrt(np.mean(x ** 2))
     return (x * (RMS_OBJETIVO / max(rms, 1e-12))).astype(np.float32)
+
+
+def hay_canto(x):
+    """
+    True si en la grabación hay un sonido que sobresale del ruido de fondo.
+    Compara las tramas más fuertes con las más débiles (percentiles 95 y 10 de la energía,
+    después del pasa-altos). Un ruido parejo no pasa el umbral; sin esta comprobación se
+    reconocería como el ave cuyo vector promedio se parece más al del ruido.
+    """
+    x = signal.sosfilt(_pasa_altos, np.asarray(x, dtype=np.float64))
+    L = int(TRAMA_S * FS)
+    n = len(x) // L
+    energia = np.mean(x[:n * L].reshape(n, L) ** 2, axis=1)
+    fuerte, fondo = np.percentile(energia, 95), max(np.percentile(energia, 10), 1e-15)
+    return 10 * np.log10(max(fuerte, 1e-15) / fondo) >= UMBRAL_CANTO_DB

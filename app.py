@@ -11,7 +11,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 import core
 import trainer
 import recognizer
-from preprocesamiento import FS, DURACION, normalizar, filtrar, acondicionar
+from preprocesamiento import FS, DURACION, normalizar, filtrar, acondicionar, hay_canto
 
 N_CORTES = 2   # -> 3 subbandas, como en el documento
 SEPARACION_MIN_HZ = 100   # distancia mínima entre cortes (y a 0 Hz / fs/2) para no dejar subbandas vacías
@@ -266,6 +266,10 @@ class PestanaReconocimiento(ctk.CTkFrame):
         if abs(x).max() < 1e-3:
             self.estado.configure(text="No se detectó sonido")
             return
+        if not hay_canto(x):
+            self.estado.configure(text="No se detectó canto")
+            self.sin_canto()
+            return
         self.estado.configure(text="Listo")
         x = acondicionar(filtrar(normalizar(x)))
         try:
@@ -279,6 +283,17 @@ class PestanaReconocimiento(ctk.CTkFrame):
         self.mostrar_imagen(ganador)
         self.subtitulo.configure(text=f"Menor distancia euclidiana: {d[ganador]:,.2f}")
         self.graficar(x, ganador, cortes)
+
+    def sin_canto(self):
+        """La grabación es solo ruido de fondo: no se reconoce ninguna ave."""
+        self.titulo.configure(text="Sin canto")
+        self.subtitulo.configure(text="Solo se oyó ruido de fondo. Acerca el micrófono al canto "
+                                      "y vuelve a grabar.")
+        self.foto.pack_forget()
+        for w in self.tablas.winfo_children():
+            w.destroy()
+        self.ax.clear()
+        self.canvas.draw_idle()
 
     def mostrar_imagen(self, ave):
         """Imagen del ave reconocida al lado del nombre (nada si no hay imagen)."""
