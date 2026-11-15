@@ -13,6 +13,11 @@ COLORES = {"Carpeta_Copeton": "tab:blue", "Carpeta_Bichofue": "tab:orange",
            "Carpeta_Mirla": "tab:green"}
 RUTA_MODELO = os.path.join("models", "vectores_promedio.json")
 METODO = "vector_completo_euclidiana"   # identifica cómo se entrenó el modelo guardado
+# Cómo escoge sugerir_cortes() la partición:
+#   "acierto"   -> la que más audios de entrenamiento deja junto al vector de su ave
+#   "distancia" -> la que más separa los vectores promedio (criterio literal del documento,
+#                  ||E_A - E_B|| máxima); con estos audios reconoce peor
+CRITERIO_PARTICION = "acierto"
 
 
 def espectros_de_carpeta(ruta):
@@ -90,22 +95,31 @@ def evaluar(frec, espectros, cortes_hz):
     return aciertos
 
 
+def separacion(frec, espectros, cortes_hz):
+    """Menor distancia ||E_A - E_B|| entre los vectores promedio de dos aves distintas."""
+    E_promedio = vectores_promedio(frec, espectros, cortes_hz)
+    return min(core.distancia_euclidiana(E_promedio[a], E_promedio[b])
+               for a, b in itertools.combinations(E_promedio, 2))
+
+
 def sugerir_cortes(frec, espectros, n_cortes=2, paso_hz=250, f_min=2000, f_max=9000, separacion_hz=500):
     """
     Escoge la partición: prueba todas las combinaciones de n_cortes sobre una rejilla de
-    paso_hz y devuelve (cortes_hz, acierto) de la que más audios de entrenamiento deja
-    junto al vector promedio de su ave. Tarda unos segundos: recalcula las energías de
-    todos los audios con cada partición.
+    paso_hz y devuelve (cortes_hz, acierto) de la mejor según CRITERIO_PARTICION.
+    Tarda unos segundos: recalcula las energías de todos los audios con cada partición.
     """
+    def acierto(cortes):
+        return float(np.mean(list(evaluar(frec, espectros, cortes).values())))
+
     rejilla = np.arange(f_min, f_max + 1, paso_hz, dtype=float)
-    mejor_acierto, mejores_cortes = -1.0, None
+    mejor_valor, mejores_cortes = -1.0, None
     for cortes in itertools.combinations(rejilla, n_cortes):
         if min(np.diff(cortes), default=separacion_hz) < separacion_hz:
             continue
-        acierto = np.mean(list(evaluar(frec, espectros, cortes).values()))
-        if acierto > mejor_acierto:
-            mejor_acierto, mejores_cortes = acierto, [float(c) for c in cortes]
-    return mejores_cortes, float(mejor_acierto)
+        valor = separacion(frec, espectros, cortes) if CRITERIO_PARTICION == "distancia" else acierto(cortes)
+        if valor > mejor_valor:
+            mejor_valor, mejores_cortes = valor, [float(c) for c in cortes]
+    return mejores_cortes, acierto(mejores_cortes)
 
 
 def guardar_modelo(fs, frec, espectros, cortes_hz):
