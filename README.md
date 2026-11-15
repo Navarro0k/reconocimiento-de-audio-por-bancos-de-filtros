@@ -30,6 +30,7 @@ Este proyecto reconoce **tres especies de aves** a partir de su canto, sin redes
 - 🎛️ **Entrenamiento interactivo:** tú eliges sobre la gráfica los 3 puntos que dividen el espectro en 4 subbandas.
 - 🎙️ **Reconocimiento en vivo:** graba 3 s desde el micrófono y muestra el resultado al instante.
 - 📊 **Resultados claros:** vector de energías, diferencias absolutas por subbanda y comparación de espectros.
+- 🐤 **Imagen del ave reconocida** junto al resultado.
 - 🔎 **Zoom** en todas las gráficas (barra de herramientas de Matplotlib).
 - 💾 **Modelo en JSON plano**, fácil de leer y versionar.
 
@@ -81,6 +82,7 @@ $$E_{XC} = \sum_{i=1}^{4}\left|E_{Xi}-E_{Ci}\right| \qquad\qquad \text{tipo}_X =
 ├── requirements.txt
 ├── audio/                 # MP3 originales      (se genera)
 ├── audio_3s/              # WAV recortados a 3 s (se genera)
+├── imagenes/              # Pixel art de cada ave (copeton.png, bichofue.png, mirla.png)
 ├── models/
 │   └── umbrales_energia.json   # Modelo entrenado (se genera)
 └── graficas/              # Imágenes de espectros (se genera)
