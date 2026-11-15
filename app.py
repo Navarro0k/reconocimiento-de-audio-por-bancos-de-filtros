@@ -178,12 +178,25 @@ class PestanaEntrenamiento(ctk.CTkFrame):
             return
         for w in self.resultado.winfo_children():
             w.destroy()
-        ctk.CTkLabel(self.resultado, anchor="w", text=f"Modelo guardado en {trainer.RUTA_MODELO} "
-                     "— vector promedio de energías de cada ave:").pack(fill="x")
+        izq = ctk.CTkFrame(self.resultado, fg_color="transparent")
+        izq.pack(side="left", anchor="n")
+        der = ctk.CTkFrame(self.resultado, fg_color="transparent")
+        der.pack(side="left", anchor="n", padx=(24, 0))
+
+        # Comparación de los vectores promedio (como la tabla del documento)
+        ctk.CTkLabel(izq, anchor="w", text=f"Comparación de los vectores promedio (guardados en {trainer.RUTA_MODELO})",
+                     font=ctk.CTkFont(weight="bold")).pack(fill="x")
         aciertos = trainer.evaluar(self.frec, self.espectros, self.cortes)
-        filas = [[nombre(a)] + numeros(v) + [f"{100 * aciertos[a]:.0f} %"] for a, v in vectores.items()]
-        tabla(self.resultado, ["Ave"] + rangos(self.cortes, self.fs) + ["Acierto entrenamiento"],
-              filas).pack(anchor="w")
+        filas = [[f"E_{nombre(a)}"] + numeros(v) + [f"{100 * aciertos[a]:.0f} %"] for a, v in vectores.items()]
+        tabla(izq, ["Vector"] + rangos(self.cortes, self.fs) + ["Acierto entrenamiento"], filas).pack(anchor="w")
+
+        # Qué tan diferentes quedaron: distancia euclidiana entre cada par de vectores
+        ctk.CTkLabel(der, anchor="w", text="Distancia entre vectores promedio",
+                     font=ctk.CTkFont(weight="bold")).pack(fill="x")
+        aves = list(vectores)
+        filas = [[f"||E_{nombre(a)} − E_{nombre(b)}||", f"{core.distancia_euclidiana(vectores[a], vectores[b]):,.2f}"]
+                 for i, a in enumerate(aves) for b in aves[i + 1:]]
+        tabla(der, ["Par", "Distancia"], filas).pack(anchor="w")
 
 
 class PestanaReconocimiento(ctk.CTkFrame):
