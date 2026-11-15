@@ -6,13 +6,12 @@ import core
 import trainer
 
 carpeta_principal = "audio_3s"
-carpetas_aves = ["Carpeta_Copeton", "Carpeta_Bichofue", "Carpeta_Mirla"]
+carpetas_aves = ["Carpeta_Copeton", "Carpeta_Mirla"]
 carpeta_salida = "graficas"
-colores = {"Carpeta_Copeton": "tab:blue", "Carpeta_Bichofue": "tab:orange",
-           "Carpeta_Mirla": "tab:green"}
+colores = {"Carpeta_Copeton": "tab:blue", "Carpeta_Mirla": "tab:green"}
 
 # Cortes elegidos por el usuario en trainer.py
-with open(os.path.join("models", "umbrales_energia.json")) as f:
+with open(trainer.RUTA_MODELO) as f:
     cortes_hz = json.load(f)["cortes_hz"]
 
 os.makedirs(carpeta_salida, exist_ok=True)
@@ -27,10 +26,10 @@ for ave in carpetas_aves:
     if not espectros:
         continue
     frec = core.frecuencias(2 * (len(espectros[0]) - 1), fs)
-    Zp = core.espectro_promedio(espectros)
+    Zp = trainer.espectro_promedio(espectros)
     promedios[ave] = (frec, Zp)
     indices = core.indices_de_corte(frec, cortes_hz)
-    energias = core.energias_subbandas(Zp, indices)
+    energias = core.vector_energias(core.vector_completo(Zp, 2 * (len(Zp) - 1)), indices)
     limites = [0] + list(indices) + [len(Zp)]
 
     fig, ax = plt.subplots(figsize=(12, 5))

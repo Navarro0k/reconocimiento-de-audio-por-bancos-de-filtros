@@ -17,19 +17,19 @@
 
 ## ¿Qué hace?
 
-Este proyecto reconoce **tres especies de aves** a partir de su canto, sin redes neuronales: cada especie se resume en un **vector de cuatro energías** y el audio nuevo se asigna a la especie cuyo vector se parece más.
+Este proyecto reconoce **dos especies de aves** a partir de su canto, sin redes neuronales: cada especie se resume en un **vector de tres energías** y el audio nuevo se asigna a la especie cuyo vector se parece más.
 
 | Ave | Especie |
 |---|---|
 | Mirla | *Turdus fuscater* |
 | Copetón | *Zonotrichia capensis* |
-| Bichofué | *Pitangus sulphuratus* |
 
 **Características**
 
-- 🎛️ **Entrenamiento interactivo:** tú eliges sobre la gráfica los 3 puntos que dividen el espectro en 4 subbandas.
+- 🎛️ **Entrenamiento interactivo:** tú eliges sobre la gráfica los 2 puntos que dividen el vector FFT en 3 subbandas, o dejas que la app los sugiera.
 - 🎙️ **Reconocimiento en vivo:** graba 3 s desde el micrófono y muestra el resultado al instante.
-- 📊 **Resultados claros:** vector de energías, diferencias absolutas por subbanda y comparación de espectros.
+- 📊 **Resultados claros:** vector de energías, diferencias por subbanda, distancia euclidiana y comparación de espectros.
+- 🐤 **Imagen del ave reconocida** junto al resultado.
 - 🔎 **Zoom** en todas las gráficas (barra de herramientas de Matplotlib).
 - 💾 **Modelo en JSON plano**, fácil de leer y versionar.
 
@@ -40,29 +40,43 @@ Este proyecto reconoce **tres especies de aves** a partir de su canto, sin redes
 ```mermaid
 flowchart LR
     A[Grabaciones<br/>Xeno-canto] --> B[Recorte a 3 s]
-    B --> C[FFT y espectro<br/>promedio por ave]
-    C --> D[Elegir 3 cortes<br/>en la gráfica]
-    D --> E[Energía por subbanda<br/>→ vector de 4 valores]
-    E --> F[(umbrales_energia.json)]
+    B --> B2[Pasa-altos y<br/>energía unitaria]
+    B2 --> C[FFT de cada audio]
+    C --> D[Elegir 2 cortes<br/>a mano o sugeridos]
+    D --> E[Vector de energías<br/>de cada audio]
+    E --> E2[Vector promedio<br/>por ave]
+    E2 --> F[(vectores_promedio.json)]
     G[🎙️ Micrófono] --> H[Vector de energía<br/>de la señal]
-    F --> I{Suma de diferencias<br/>absolutas mínima}
+    F --> I{Distancia euclidiana<br/>mínima}
     H --> I
     I --> J[🐦 Ave reconocida]
 ```
 
 ### Fórmulas
 
-**Espectro** de una grabación y **espectro promedio** de las $M$ grabaciones de una ave:
+**Espectro** de una señal (la FFT se aplica a la señal ya acondicionada):
 
-$$\|X(k)\| = \left|\,\mathrm{fft}(x)\,\right| \qquad\qquad \|C(k)\|_m = \frac{1}{M}\sum_{j=1}^{M}\|C_j(k)\|$$
+$$\|X(k)\| = \left|\,\mathrm{fft}(x)\,\right|$$
 
-**Energía** de cada subbanda $i$ (con $N_i$ puntos) y **vector de umbrales**:
+**Energía promedio** de cada subbanda $i$ (con $N_i$ puntos) de una señal, y su **vector de energías**:
 
-$$E_{Ci} = \frac{1}{N_i}\sum_{k=0}^{N_i-1}\|C_i(k)\|_m^{2} \qquad\qquad E_C = \left[E_{C1}\;\;E_{C2}\;\;E_{C3}\;\;E_{C4}\right]$$
+$$E_{i} = \frac{1}{N_i}\sum_{k}\|X_i(k)\|^{2} \qquad\qquad E = \left(E_{1}\;\;E_{2}\;\;E_{3}\right)$$
 
-**Decisión:** se suman las diferencias absolutas entre el vector de la señal $X$ y el de cada ave, y gana la menor.
+**Vector promedio** de una ave $C$ con $M$ grabaciones:
 
-$$E_{XC} = \sum_{i=1}^{4}\left|E_{Xi}-E_{Ci}\right| \qquad\qquad \text{tipo}_X = \min\{E_{XC},\,E_{XD},\,\dots\}$$
+$$E_{C} = \frac{1}{M}\sum_{j=1}^{M}E^{(j)}$$
+
+**Decisión:** distancia euclidiana entre el vector de la señal $X$ y el de cada ave; gana la menor.
+
+$$d_C = \|E_X - E_C\| = \sqrt{\sum_{i=1}^{3}\left(E_{Xi}-E_{Ci}\right)^2} \qquad\qquad \text{tipo}_X = \arg\min_C\, d_C$$
+
+**Partición:** el vector FFT completo ($k = 0,\dots,N-1$) se divide en 3 subbandas; la tercera incluye la mitad reflejada. Los cortes se escogen para que las energías de las subbandas equivalentes de cada ave sean muy diferentes. «Sugerir cortes» prueba todas las combinaciones sobre una rejilla de 250 Hz (entre 2 y 9 kHz) y marca la que más audios de entrenamiento deja junto al vector de su ave. Con `CRITERIO_PARTICION = "distancia"` en `trainer.py` escoge en cambio la que hace máxima la distancia $\|E_A - E_B\|$ entre vectores promedio, que es el criterio literal del documento pero reconoce peor con estos audios.
+
+**Verificación:** `python verificar_documento.py` calcula el ejemplo de 8 puntos del documento con las funciones de `core.py` y compara cada resultado con el del documento.
+
+**Acondicionamiento** (agregado al documento; igual al entrenar y al reconocer, antes de la FFT): filtro Butterworth pasa-altos de 2 kHz, para que el ruido grave del micrófono no entre a las subbandas, y escalado a energía unitaria, para que el volumen de la grabación no cambie el vector. Los parámetros están en `preprocesamiento.py`.
+
+El espectro promedio $\|C(k)\|_m$ se usa solo para las gráficas.
 
 ---
 
@@ -72,8 +86,9 @@ $$E_{XC} = \sum_{i=1}^{4}\left|E_{Xi}-E_{Ci}\right| \qquad\qquad \text{tipo}_X =
 .
 ├── DownloaderData.py      # Descarga y valida grabaciones (API de Xeno-canto)
 ├── audioAnalizer.py       # Analiza duraciones y recorta cada audio a 3 s
-├── preprocesamiento.py    # Parámetros de audio (fs, duración) y normalización
-├── core.py                # ★ Núcleo: espectro, promedio, energía, diferencias
+├── preprocesamiento.py    # Parámetros de audio y preprocesamiento (no hace parte de las fórmulas)
+├── verificar_documento.py # Comprueba core.py con el ejemplo de 8 puntos del documento
+├── core.py                # ★ Núcleo: espectro, energía, vector promedio, distancia euclidiana
 ├── trainer.py             # Lógica de entrenamiento y guardado del modelo
 ├── recognizer.py          # Grabación en vivo y decisión
 ├── app.py                 # Interfaz gráfica (entrenamiento + reconocimiento)
@@ -81,8 +96,9 @@ $$E_{XC} = \sum_{i=1}^{4}\left|E_{Xi}-E_{Ci}\right| \qquad\qquad \text{tipo}_X =
 ├── requirements.txt
 ├── audio/                 # MP3 originales      (se genera)
 ├── audio_3s/              # WAV recortados a 3 s (se genera)
+├── imagenes/              # Pixel art de cada ave (copeton.png, mirla.png)
 ├── models/
-│   └── umbrales_energia.json   # Modelo entrenado (se genera)
+│   └── vectores_promedio.json   # Modelo entrenado (se genera)
 └── graficas/              # Imágenes de espectros (se genera)
 ```
 
@@ -132,7 +148,7 @@ python app.py
 
 | Pestaña | Qué hacer |
 |---|---|
-| **Entrenamiento** | `Cargar espectros` → clic izquierdo en la gráfica para marcar **3 cortes** (clic derecho deshace) → `Entrenar y guardar` |
+| **Entrenamiento** | `Cargar espectros` → clic izquierdo en la gráfica para marcar **2 cortes** (o `Sugerir cortes`) (clic derecho deshace) → `Entrenar y guardar` |
 | **Reconocimiento** | `Grabar 3 s y reconocer` → acerca el micrófono al canto y mira el resultado |
 
 > 💡 Si usas la lupa o el modo mover de la barra de zoom, los clics no agregan cortes: desactívala para marcarlos.
@@ -147,16 +163,16 @@ python graficas.py
 
 ## 📦 Formato del modelo
 
-`models/umbrales_energia.json` guarda la frecuencia de muestreo, los cortes en Hz y el vector de energías de cada ave (los valores son un ejemplo):
+`models/vectores_promedio.json` guarda el método de entrenamiento, la frecuencia de muestreo, los cortes en Hz y el vector promedio de energías de cada ave (los valores son un ejemplo):
 
 ```json
 {
+    "metodo": "vector_completo_euclidiana",
     "fs": 22050,
-    "cortes_hz": [3500, 6000, 9000],
-    "energias": {
-        "Carpeta_Mirla":    [ 10.11, 6001.22, 40.00, 9.50 ],
-        "Carpeta_Copeton":  [ 0.00, 0.00, 0.00, 0.00 ],
-        "Carpeta_Bichofue": [ 0.00, 0.00, 0.00, 0.00 ]
+    "cortes_hz": [3000, 4750],
+    "vectores_promedio": {
+        "Carpeta_Mirla":    [ 10.11, 6001.22, 40.00 ],
+        "Carpeta_Copeton":  [ 0.00, 0.00, 0.00 ]
     }
 }
 ```

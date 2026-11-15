@@ -1,15 +1,25 @@
 """Fase de reconocimiento (lógica). La interfaz está en app.py."""
+import os
 import json
+import math
+import time
 import core
 from preprocesamiento import FS, N
-from trainer import RUTA_MODELO
+from trainer import RUTA_MODELO, METODO
 
 
 def cargar_modelo():
-    """(cortes_hz, {ave: vector de umbrales de energía})"""
+    """(cortes_hz, {ave: vector promedio de energías E_ave})"""
     with open(RUTA_MODELO) as f:
         m = json.load(f)
-    return m["cortes_hz"], m["energias"]
+    if m.get("metodo") != METODO or "vectores_promedio" not in m:
+        raise ValueError("El modelo guardado se entrenó con una versión anterior del método. "
+                         "Vuelve a entrenar en la pestaña Entrenamiento.")
+    for ave, vector in m["vectores_promedio"].items():
+        if any(not math.isfinite(e) for e in vector):
+            raise ValueError(f"El modelo guardado tiene energías nan para {ave} "
+                             "(subbanda vacía por cortes repetidos). Vuelve a entrenar.")
+    return m["cortes_hz"], m["vectores_promedio"]
 
 
 def iniciar_grabacion():
@@ -25,15 +35,27 @@ def terminar_grabacion(buffer):
     return buffer[:, 0]
 
 
-def reconocer(x, cortes_hz, umbrales):
+CARPETA_GRABACIONES = "grabaciones"   # copia de cada grabación del micrófono (no se sube al repo)
+
+
+def guardar_grabacion(x):
+    """Guarda la grabación cruda del micrófono como WAV, para poder revisar después qué se oyó."""
+    from scipy.io import wavfile
+    os.makedirs(CARPETA_GRABACIONES, exist_ok=True)
+    ruta = os.path.join(CARPETA_GRABACIONES, time.strftime("grabacion_%Y%m%d_%H%M%S.wav"))
+    wavfile.write(ruta, FS, x.astype("float32"))
+    return ruta
+
+
+def reconocer(x, cortes_hz, E_promedio):
     """
-    E_X = vector de energía de la señal. Por cada ave: diferencias |E_Xi - E_ave,i| y su suma E_X<ave>.
-    Devuelve (resultados, E_X); resultados = [(ave, diferencias, suma)] de menor a mayor suma,
-    así que resultados[0] es el tipo reconocido.
+    Reconoce la señal x (ya acondicionada) siguiendo los pasos del documento.
+    Devuelve (tipo, d, E_x): el ave reconocida, {ave: distancia} y el vector de energías de x.
     """
-    z = core.espectro(x)
-    indices = core.indices_de_corte(core.frecuencias(len(x), FS), cortes_hz)
-    E_X = core.energias_subbandas(z, indices)
-    resultados = [(ave, core.diferencias_absolutas(E_X, E), core.suma_diferencias_absolutas(E_X, E))
-                  for ave, E in umbrales.items()]
-    return sorted(resultados, key=lambda r: r[2]), E_X
+    N = len(x)
+    X = core.vector_completo(core.espectro(x), N)                          # 1. ||X(k)||, k = 0..N-1
+    k_cortes = core.indices_de_corte(core.frecuencias(N, FS), cortes_hz)
+    E_x = core.vector_energias(X, k_cortes)                                # 2 y 3. E_x = (E_1, E_2, E_3)
+    d = core.distancias(E_x, E_promedio)                                   # 5. d_ave = ||E_x - E_ave||
+    tipo = core.tipo_reconocido(d)                                         # 6. menor distancia
+    return tipo, d, E_x

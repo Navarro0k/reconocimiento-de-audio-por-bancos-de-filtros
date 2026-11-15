@@ -2,6 +2,7 @@
 import os
 from tkinter import messagebox
 import customtkinter as ctk
+from PIL import Image
 import matplotlib
 matplotlib.use("TkAgg")
 from matplotlib.figure import Figure
@@ -10,10 +11,13 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 import core
 import trainer
 import recognizer
-from preprocesamiento import FS, DURACION, normalizar, filtrar
+from preprocesamiento import FS, DURACION, normalizar, filtrar, acondicionar, hay_canto
 
-N_CORTES = 3   # -> 4 subbandas
+N_CORTES = 2   # -> 3 subbandas, como en el documento
+SEPARACION_MIN_HZ = 100   # distancia mínima entre cortes (y a 0 Hz / fs/2) para no dejar subbandas vacías
 VERDE = "#c8f0cf"
+CARPETA_IMAGENES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "imagenes")
+TAM_IMAGEN = 140   # px del ave reconocida
 
 
 def nombre(ave):
@@ -21,28 +25,42 @@ def nombre(ave):
 
 
 def rangos(cortes_hz, fmax):
-    """Encabezados de subbanda: 'S1\\n0.0-3.5 kHz', ..."""
+    """Encabezados de subbanda: 'S1 (0.0–3.5 kHz)', ... La última llega hasta fs porque la
+    partición se hace sobre el vector FFT completo (incluye la mitad reflejada)."""
     lim = [0] + sorted(cortes_hz) + [fmax]
-    return [f"S{i + 1}\n{lim[i] / 1000:.1f}–{lim[i + 1] / 1000:.1f} kHz" for i in range(len(lim) - 1)]
+    return [f"S{i + 1} ({lim[i] / 1000:.1f}–{lim[i + 1] / 1000:.1f} kHz)" for i in range(len(lim) - 1)]
+
+
+def imagen_ave(ave):
+    """Ruta de la imagen del ave (imagenes/copeton.png, ...) o None si no existe."""
+    ruta = os.path.join(CARPETA_IMAGENES, f"{nombre(ave).lower()}.png")
+    return ruta if os.path.exists(ruta) else None
 
 
 def numeros(v):
     return [f"{e:,.2f}" for e in v]
 
 
+def numeros_cortos(v):
+    """Como numeros(), pero en notación científica los valores muy grandes."""
+    return [f"{e:.3e}" if abs(e) >= 1e7 else f"{e:,.2f}" for e in v]
+
+
 def tabla(padre, encabezados, filas, resaltar=None):
-    """Tabla de etiquetas; la fila `resaltar` se pinta de verde."""
-    marco = ctk.CTkFrame(padre)
+    """Tabla con rejilla; la fila `resaltar` se pinta de verde."""
+    marco = ctk.CTkFrame(padre, fg_color="gray40", corner_radius=0)
     for j, h in enumerate(encabezados):
-        ctk.CTkLabel(marco, text=h, font=ctk.CTkFont(weight="bold"), justify="right",
-                     anchor="w" if j == 0 else "e").grid(row=0, column=j, padx=6, pady=3, sticky="ew")
+        ctk.CTkLabel(marco, text=h, font=ctk.CTkFont(weight="bold", size=12), fg_color="#e8e8e8",
+                     text_color="black", corner_radius=0, anchor="center"
+                     ).grid(row=0, column=j, padx=1, pady=1, sticky="nsew", ipadx=6, ipady=2)
     for i, fila in enumerate(filas):
         gana = i == resaltar
         for j, v in enumerate(fila):
-            ctk.CTkLabel(marco, text=v, text_color="black" if gana else None,
-                         fg_color=VERDE if gana else "transparent", corner_radius=4,
-                         font=ctk.CTkFont(weight="bold" if gana else "normal"),
-                         anchor="w" if j == 0 else "e").grid(row=i + 1, column=j, padx=2, pady=1, sticky="ew")
+            ctk.CTkLabel(marco, text=v, text_color="black", corner_radius=0,
+                         fg_color=VERDE if gana else "white",
+                         font=ctk.CTkFont(weight="bold" if gana else "normal", size=12),
+                         anchor="center"
+                         ).grid(row=i + 1, column=j, padx=1, pady=1, sticky="nsew", ipadx=6, ipady=1)
     return marco
 
 
@@ -61,19 +79,22 @@ def crear_grafica(padre):
 class PestanaEntrenamiento(ctk.CTkFrame):
     def __init__(self, master):
         super().__init__(master, fg_color="transparent")
-        self.promedios, self.cortes, self.lineas = {}, [], []
+        self.promedios, self.espectros, self.cortes, self.lineas = {}, {}, [], []
 
         barra = ctk.CTkFrame(self, fg_color="transparent")
         barra.pack(fill="x", pady=(0, 6))
         ctk.CTkButton(barra, text="Cargar espectros", command=self.cargar).pack(side="left")
         ctk.CTkButton(barra, text="Deshacer corte", fg_color="gray50", command=self.deshacer
                       ).pack(side="left", padx=8)
+        self.btn_sugerir = ctk.CTkButton(barra, text="Sugerir cortes", state="disabled",
+                                         command=self.sugerir)
+        self.btn_sugerir.pack(side="left", padx=(0, 8))
         self.btn_guardar = ctk.CTkButton(barra, text="Entrenar y guardar", state="disabled",
                                          command=self.guardar)
         self.btn_guardar.pack(side="left")
         self.info = ctk.CTkLabel(self, anchor="w", text=(
             f"1) Carga los espectros  2) Clic izquierdo en la gráfica para marcar {N_CORTES} cortes "
-            "(clic derecho deshace)  3) Entrena y guarda. Usa la lupa de la barra para hacer zoom."))
+            "(clic derecho deshace) o usa «Sugerir cortes»  3) Entrena y guarda. Usa la lupa de la barra para hacer zoom."))
         self.info.pack(fill="x")
 
         zona = ctk.CTkFrame(self, fg_color="transparent")
@@ -85,10 +106,11 @@ class PestanaEntrenamiento(ctk.CTkFrame):
 
     def cargar(self):
         try:
-            self.fs, self.frec, self.promedios = trainer.cargar_promedios()
+            self.fs, self.frec, self.espectros = trainer.cargar_espectros()
         except Exception as e:
             messagebox.showerror("Error", str(e))
             return
+        self.promedios = trainer.promedios_de(self.espectros)
         self.cortes, self.lineas = [], []
         self.ax.clear()
         for ave, z in self.promedios.items():
@@ -99,6 +121,7 @@ class PestanaEntrenamiento(ctk.CTkFrame):
         self.ax.legend(loc="upper right")
         self.canvas.draw_idle()
         self.toolbar.update()          # "home" vuelve a esta vista
+        self.btn_sugerir.configure(state="normal")
         self.actualizar()
 
     def clic(self, ev):
@@ -106,12 +129,34 @@ class PestanaEntrenamiento(ctk.CTkFrame):
         if modo or ev.inaxes is not self.ax or not self.promedios:   # zoom/pan activo
             return
         if ev.button == 1 and len(self.cortes) < N_CORTES:
-            self.cortes.append(float(ev.xdata))
-            self.lineas.append(self.ax.axvline(ev.xdata, color="k", ls="--", lw=1))
+            x = float(ev.xdata)
+            limites = [0.0, self.fs / 2] + self.cortes
+            if min(abs(x - c) for c in limites) < SEPARACION_MIN_HZ:
+                self.info.configure(text=f"Corte en {x:.0f} Hz ignorado: debe estar a más de "
+                                         f"{SEPARACION_MIN_HZ} Hz de otro corte y de los extremos.")
+                return
+            self.cortes.append(x)
+            self.lineas.append(self.ax.axvline(x, color="k", ls="--", lw=1))
             self.canvas.draw_idle()
         elif ev.button == 3:
             self.deshacer()
         self.actualizar()
+
+    def sugerir(self):
+        """Marca los cortes que mejor separan las aves (trainer.sugerir_cortes)."""
+        self.info.configure(text="Buscando la mejor partición...")
+        self.update_idletasks()
+        cortes, acierto = trainer.sugerir_cortes(self.frec, self.espectros, N_CORTES)
+        while self.cortes:
+            self.cortes.pop()
+            self.lineas.pop().remove()
+        for c in cortes:
+            self.cortes.append(c)
+            self.lineas.append(self.ax.axvline(c, color="k", ls="--", lw=1))
+        self.canvas.draw_idle()
+        self.actualizar()
+        self.info.configure(text=self.info.cget("text") + f"  (sugeridos: {100 * acierto:.0f} % de acierto "
+                                                         "con los audios de entrenamiento)")
 
     def deshacer(self):
         if self.cortes:
@@ -126,19 +171,39 @@ class PestanaEntrenamiento(ctk.CTkFrame):
         self.info.configure(text=f"Cortes {len(self.cortes)}/{N_CORTES}: {hz}")
 
     def guardar(self):
-        vectores = trainer.guardar_modelo(self.fs, self.frec, self.promedios, self.cortes)
+        try:
+            vectores = trainer.guardar_modelo(self.fs, self.frec, self.espectros, self.cortes)
+        except ValueError as e:
+            messagebox.showerror("Cortes no válidos", f"{e}\n\nDeshaz el corte y marca otro.")
+            return
         for w in self.resultado.winfo_children():
             w.destroy()
-        ctk.CTkLabel(self.resultado, anchor="w", text=f"Modelo guardado en {trainer.RUTA_MODELO} "
-                     "— vector de energías de cada ave:").pack(fill="x")
-        filas = [[nombre(a)] + numeros(v) for a, v in vectores.items()]
-        tabla(self.resultado, ["Ave"] + rangos(self.cortes, self.fs / 2), filas).pack(anchor="w")
+        izq = ctk.CTkFrame(self.resultado, fg_color="transparent")
+        izq.pack(side="left", anchor="n")
+        der = ctk.CTkFrame(self.resultado, fg_color="transparent")
+        der.pack(side="left", anchor="n", padx=(24, 0))
+
+        # Comparación de los vectores promedio (como la tabla del documento)
+        ctk.CTkLabel(izq, anchor="w", text=f"Comparación de los vectores promedio (guardados en {trainer.RUTA_MODELO})",
+                     font=ctk.CTkFont(weight="bold")).pack(fill="x")
+        aciertos = trainer.evaluar(self.frec, self.espectros, self.cortes)
+        filas = [[f"E_{nombre(a)}"] + numeros(v) + [f"{100 * aciertos[a]:.0f} %"] for a, v in vectores.items()]
+        tabla(izq, ["Vector"] + rangos(self.cortes, self.fs) + ["Acierto entrenamiento"], filas).pack(anchor="w")
+
+        # Qué tan diferentes quedaron: distancia euclidiana entre cada par de vectores
+        ctk.CTkLabel(der, anchor="w", text="Distancia entre vectores promedio",
+                     font=ctk.CTkFont(weight="bold")).pack(fill="x")
+        aves = list(vectores)
+        filas = [[f"||E_{nombre(a)} − E_{nombre(b)}||", f"{core.distancia_euclidiana(vectores[a], vectores[b]):,.2f}"]
+                 for i, a in enumerate(aves) for b in aves[i + 1:]]
+        tabla(der, ["Par", "Distancia"], filas).pack(anchor="w")
 
 
 class PestanaReconocimiento(ctk.CTkFrame):
     def __init__(self, master):
         super().__init__(master, fg_color="transparent")
         self.cache = {}     # ave -> (frec, ||C(k)||_m)
+        self.imagenes = {}  # ave -> CTkImage
         self.columnconfigure(1, weight=1)
         self.rowconfigure(1, weight=1)
 
@@ -154,9 +219,15 @@ class PestanaReconocimiento(ctk.CTkFrame):
 
         izq = ctk.CTkFrame(self, fg_color="transparent")
         izq.grid(row=1, column=0, sticky="ns", padx=(0, 10))
-        self.titulo = ctk.CTkLabel(izq, text="", font=ctk.CTkFont(size=28, weight="bold"))
+        cabecera = ctk.CTkFrame(izq, fg_color="transparent")
+        cabecera.pack(anchor="w", fill="x")
+        self.foto = ctk.CTkLabel(cabecera, text="")
+        self.foto.pack(side="left", padx=(0, 12))
+        textos = ctk.CTkFrame(cabecera, fg_color="transparent")
+        textos.pack(side="left", fill="y")
+        self.titulo = ctk.CTkLabel(textos, text="", font=ctk.CTkFont(size=28, weight="bold"))
         self.titulo.pack(anchor="w")
-        self.subtitulo = ctk.CTkLabel(izq, text="", anchor="w")
+        self.subtitulo = ctk.CTkLabel(textos, text="", anchor="w")
         self.subtitulo.pack(anchor="w", pady=(0, 8))
         self.tablas = ctk.CTkFrame(izq, fg_color="transparent")
         self.tablas.pack(anchor="w")
@@ -190,35 +261,72 @@ class PestanaReconocimiento(ctk.CTkFrame):
     # --- reconocimiento ---
     def terminar(self):
         x = recognizer.terminar_grabacion(self.buffer)
+        try:
+            recognizer.guardar_grabacion(x)
+        except OSError:
+            pass   # no poder guardar la copia no debe impedir el reconocimiento
         self.btn.configure(state="normal")
         self.progreso.set(1)
         if abs(x).max() < 1e-3:
             self.estado.configure(text="No se detectó sonido")
             return
+        if not hay_canto(x):
+            self.estado.configure(text="No se detectó canto")
+            self.sin_canto()
+            return
         self.estado.configure(text="Listo")
-        x = filtrar(normalizar(x))
-        cortes, umbrales = recognizer.cargar_modelo()
-        resultados, E_X = recognizer.reconocer(x, cortes, umbrales)
-        ganador, _, suma = resultados[0]
-        self.mostrar_tablas(cortes, umbrales, resultados, E_X)
+        x = acondicionar(filtrar(normalizar(x)))
+        try:
+            cortes, E_promedio = recognizer.cargar_modelo()
+        except ValueError as e:
+            messagebox.showerror("Modelo no válido", str(e))
+            return
+        ganador, d, E_x = recognizer.reconocer(x, cortes, E_promedio)
+        self.mostrar_tablas(cortes, E_promedio, d, E_x)
         self.titulo.configure(text=nombre(ganador))
-        self.subtitulo.configure(text=f"Menor suma de diferencias absolutas: {suma:,.2f}")
+        self.mostrar_imagen(ganador)
+        self.subtitulo.configure(text=f"Menor distancia euclidiana: {d[ganador]:,.2f}")
         self.graficar(x, ganador, cortes)
 
-    def mostrar_tablas(self, cortes, umbrales, resultados, E_X):
+    def sin_canto(self):
+        """La grabación es solo ruido de fondo: no se reconoce ninguna ave."""
+        self.titulo.configure(text="Sin canto")
+        self.subtitulo.configure(text="Solo se oyó ruido de fondo. Acerca el micrófono al canto "
+                                      "y vuelve a grabar.")
+        self.foto.pack_forget()
         for w in self.tablas.winfo_children():
             w.destroy()
-        enc = rangos(cortes, FS / 2)
+        self.ax.clear()
+        self.canvas.draw_idle()
+
+    def mostrar_imagen(self, ave):
+        """Imagen del ave reconocida al lado del nombre (nada si no hay imagen)."""
+        if ave not in self.imagenes:
+            ruta = imagen_ave(ave)
+            self.imagenes[ave] = ctk.CTkImage(Image.open(ruta), size=(TAM_IMAGEN, TAM_IMAGEN)) if ruta else None
+        img = self.imagenes[ave]
+        if img:
+            self.foto.configure(image=img)
+            self.foto.pack(side="left", padx=(0, 12))
+        else:
+            self.foto.pack_forget()
+
+    def mostrar_tablas(self, cortes, E_promedio, d, E_x):
+        aves = sorted(d, key=d.get)   # de menor a mayor distancia: la primera es la reconocida
+        for w in self.tablas.winfo_children():
+            w.destroy()
+        enc = rangos(cortes, FS)
         ctk.CTkLabel(self.tablas, text="Vectores de energía", anchor="w",
                      font=ctk.CTkFont(weight="bold")).pack(fill="x")
-        filas = [["Grabación X"] + numeros(E_X)]
-        filas += [[f"Umbral {nombre(a)}"] + numeros(umbrales[a]) for a, _, _ in resultados]
-        tabla(self.tablas, [""] + enc, filas).pack(anchor="w", pady=(0, 12))
+        filas = [["E_x (grabación)"] + numeros(E_x)]
+        filas += [[f"E_{nombre(a)}"] + numeros(E_promedio[a]) for a in aves]
+        tabla(self.tablas, ["Vectores"] + enc, filas).pack(anchor="w", pady=(0, 12))
 
-        ctk.CTkLabel(self.tablas, text="Diferencias absolutas |E_Xi − E_ave,i|", anchor="w",
+        ctk.CTkLabel(self.tablas, text="Términos (E_xi − E_ave,i)² y distancia d = ||E_x − E_ave|| = √Σ", anchor="w",
                      font=ctk.CTkFont(weight="bold")).pack(fill="x")
-        filas = [[nombre(a)] + numeros(d) + [f"{s:,.2f}"] for a, d, s in resultados]
-        tabla(self.tablas, ["Ave"] + enc + ["Σ"], filas, resaltar=0).pack(anchor="w")
+        filas = [[nombre(a)] + numeros_cortos([(ex - ea) ** 2 for ex, ea in zip(E_x, E_promedio[a])])
+                 + [f"{d[a]:,.2f}"] for a in aves]
+        tabla(self.tablas, ["Ave"] + enc + ["d"], filas, resaltar=0).pack(anchor="w")
 
     def graficar(self, x, ganador, cortes):
         if ganador not in self.cache:
