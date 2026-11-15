@@ -43,16 +43,22 @@ def validar_cortes(frec, cortes_hz):
     return indices
 
 
-def energia(subbanda):
+def particion(X, k_cortes):
+    """Divide el vector X(k) en los subvectores X_1, X_2, ... en los índices k_cortes."""
+    return np.split(X, k_cortes)
+
+
+def energia(X_i):
     """E_i = (1/N_i) * sum_k ||X_i(k)||^2"""
-    if len(subbanda) == 0:
+    N_i = len(X_i)
+    if N_i == 0:
         raise ValueError("Subbanda vacía (N_i = 0): no se puede calcular su energía.")
-    return float(np.sum(subbanda ** 2) / len(subbanda))
+    return float((1 / N_i) * np.sum(np.abs(X_i) ** 2))
 
 
-def energias_subbandas(z, indices_corte):
-    """Divide el espectro en subbandas y devuelve el vector E = [E_1 ... E_S]."""
-    return [energia(sb) for sb in np.split(z, indices_corte)]
+def vector_energias(X, k_cortes):
+    """E = (E_1, E_2, ...): energía promedio de cada subbanda de X(k)."""
+    return [energia(X_i) for X_i in particion(X, k_cortes)]
 
 
 def diferencias_absolutas(E_X, E_C):

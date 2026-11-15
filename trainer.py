@@ -68,7 +68,7 @@ def cargar_promedios():
 def vectores_por_audio(frec, espectros, cortes_hz):
     """{ave: [vector de energías [E_1 ... E_S] de cada audio]}"""
     indices = core.validar_cortes(frec, cortes_hz)
-    return {ave: [core.energias_subbandas(z, indices) for z in lista] for ave, lista in espectros.items()}
+    return {ave: [core.vector_energias(z, indices) for z in lista] for ave, lista in espectros.items()}
 
 
 def vectores_promedio(frec, espectros, cortes_hz):

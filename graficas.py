@@ -30,7 +30,7 @@ for ave in carpetas_aves:
     Zp = trainer.espectro_promedio(espectros)
     promedios[ave] = (frec, Zp)
     indices = core.indices_de_corte(frec, cortes_hz)
-    energias = core.energias_subbandas(Zp, indices)
+    energias = core.vector_energias(Zp, indices)
     limites = [0] + list(indices) + [len(Zp)]
 
     fig, ax = plt.subplots(figsize=(12, 5))
