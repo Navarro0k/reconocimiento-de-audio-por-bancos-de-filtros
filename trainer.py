@@ -68,7 +68,9 @@ def cargar_promedios():
 def vectores_por_audio(frec, espectros, cortes_hz):
     """{ave: [vector de energías [E_1 ... E_S] de cada audio]}"""
     indices = core.validar_cortes(frec, cortes_hz)
-    return {ave: [core.vector_energias(z, indices) for z in lista] for ave, lista in espectros.items()}
+    N = 2 * (len(frec) - 1)   # puntos de la FFT completa
+    return {ave: [core.vector_energias(core.vector_completo(z, N), indices) for z in lista]
+            for ave, lista in espectros.items()}
 
 
 def vectores_promedio(frec, espectros, cortes_hz):
@@ -97,8 +99,9 @@ def sugerir_cortes(frec, espectros, n_cortes=3, paso_hz=250, f_min=500, f_max=10
     """
     aves = list(espectros)
     # Suma acumulada de ||X(k)||^2 de cada audio: la energía de una subbanda sale de dos restas
-    acum = np.concatenate([np.cumsum(np.square(np.asarray(espectros[a], dtype=np.float64)), axis=1)
-                           for a in aves])
+    N = 2 * (len(frec) - 1)
+    acum = np.concatenate([np.cumsum([np.square(core.vector_completo(z, N), dtype=np.float64)
+                                      for z in espectros[a]], axis=1) for a in aves])
     acum = np.concatenate([np.zeros((len(acum), 1)), acum], axis=1)
     clase = np.concatenate([np.full(len(espectros[a]), i) for i, a in enumerate(aves)])
     rejilla = np.arange(f_min, f_max + 1, paso_hz, dtype=float)
@@ -109,7 +112,7 @@ def sugerir_cortes(frec, espectros, n_cortes=3, paso_hz=250, f_min=500, f_max=10
     for comb in itertools.combinations(range(len(rejilla)), n_cortes):
         if any(b - a < salto for a, b in zip(comb, comb[1:])):
             continue
-        lim = np.concatenate(([0], k_rejilla[list(comb)], [len(frec)]))
+        lim = np.concatenate(([0], k_rejilla[list(comb)], [N]))
         if np.any(np.diff(lim) <= 0):
             continue
         E = (acum[:, lim[1:]] - acum[:, lim[:-1]]) / np.diff(lim)          # un vector por audio

@@ -17,6 +17,15 @@ def espectro(x):
     return z
 
 
+def vector_completo(z, N):
+    """
+    ||X(k)|| para k = 0, ..., N-1 a partir de la mitad útil z que devuelve espectro().
+    Como x(n) es real, ||X(N-k)|| = ||X(k)||: la segunda mitad es el reflejo de la primera.
+    """
+    reflejo = z[-2:0:-1] if N % 2 == 0 else z[:0:-1]
+    return np.concatenate([z, reflejo])
+
+
 def frecuencias(N, fs):
     """Frecuencia en Hz de cada índice k (para graficar y ubicar los cortes)."""
     return np.fft.rfftfreq(N, d=1.0 / fs)
@@ -35,7 +44,7 @@ def validar_cortes(frec, cortes_hz):
     E = 0/0 = nan.
     """
     indices = indices_de_corte(frec, cortes_hz)
-    limites = np.concatenate(([0], indices, [len(frec)]))
+    limites = np.concatenate(([0], indices, [len(frec)]))   # los cortes van en la mitad útil (0 a fs/2)
     vacias = [i + 1 for i in range(len(limites) - 1) if limites[i + 1] <= limites[i]]
     if vacias:
         raise ValueError(f"Las subbandas {', '.join(f'S{i}' for i in vacias)} quedan vacías: "

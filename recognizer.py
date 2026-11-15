@@ -42,7 +42,7 @@ def reconocer(x, cortes_hz, umbrales):
     """
     z = core.espectro(x)
     indices = core.indices_de_corte(core.frecuencias(len(x), FS), cortes_hz)
-    E_X = core.vector_energias(z, indices)
+    E_X = core.vector_energias(core.vector_completo(z, len(x)), indices)
     resultados = [(ave, core.diferencias_absolutas(E_X, E), core.distancia_euclidiana(E_X, E))
                   for ave, E in umbrales.items()]
     return sorted(resultados, key=lambda r: r[2]), E_X
