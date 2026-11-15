@@ -1,5 +1,6 @@
 """Parámetros de audio y normalización (igual que los WAV de entrenamiento de audioAnalizer.py)."""
 import numpy as np
+from scipy import signal
 from filtro import MovingAverageFilter
 
 FS = 22050                  # frecuencia de muestreo
@@ -9,6 +10,12 @@ N = int(FS * DURACION)      # muestras por audio
 USAR_FILTRO = True          # filtro de media móvil sobre el audio analizado (False = sin filtro)
 M_FILTRO = 3                # longitud M de la media móvil (muestras); con M = 5 el acierto bajó en las pruebas
 _filtro = MovingAverageFilter(M_FILTRO)
+
+USAR_PASA_ALTOS = True      # quita el ruido grave (voz, ambiente, zumbido) antes de la FFT
+PASA_ALTOS_HZ = 2000        # frecuencia de corte; el canto de las tres aves está por encima
+ORDEN_PASA_ALTOS = 4        # Butterworth
+RMS_OBJETIVO = 0.1          # todas las señales quedan con la misma energía
+_pasa_altos = signal.butter(ORDEN_PASA_ALTOS, PASA_ALTOS_HZ, "highpass", fs=FS, output="sos")
 
 
 def normalizar(x):
@@ -22,3 +29,17 @@ def filtrar(x):
     if not USAR_FILTRO:
         return x
     return _filtro.apply(x).astype(np.float32)
+
+
+def acondicionar(x):
+    """
+    Deja la señal lista para la FFT, igual al entrenar y al reconocer:
+      1) pasa-altos Butterworth: el ruido grave del micrófono no entra a las subbandas;
+      2) energía unitaria: x <- x * RMS_OBJETIVO / rms(x), así el volumen de la grabación
+         no cambia el vector de energías (por Parseval, sum ||X(k)||^2 queda fija).
+    """
+    x = np.asarray(x, dtype=np.float64)
+    if USAR_PASA_ALTOS:
+        x = signal.sosfilt(_pasa_altos, x)
+    rms = np.sqrt(np.mean(x ** 2))
+    return (x * (RMS_OBJETIVO / max(rms, 1e-12))).astype(np.float32)
