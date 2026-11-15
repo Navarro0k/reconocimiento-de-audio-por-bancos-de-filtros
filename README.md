@@ -17,13 +17,12 @@
 
 ## ¿Qué hace?
 
-Este proyecto reconoce **tres especies de aves** a partir de su canto, sin redes neuronales: cada especie se resume en un **vector de cuatro energías** y el audio nuevo se asigna a la especie cuyo vector se parece más.
+Este proyecto reconoce **dos especies de aves** a partir de su canto, sin redes neuronales: cada especie se resume en un **vector de tres energías** y el audio nuevo se asigna a la especie cuyo vector se parece más.
 
 | Ave | Especie |
 |---|---|
 | Mirla | *Turdus fuscater* |
 | Copetón | *Zonotrichia capensis* |
-| Bichofué | *Pitangus sulphuratus* |
 
 **Características**
 
@@ -97,7 +96,7 @@ El espectro promedio $\|C(k)\|_m$ se usa solo para las gráficas.
 ├── requirements.txt
 ├── audio/                 # MP3 originales      (se genera)
 ├── audio_3s/              # WAV recortados a 3 s (se genera)
-├── imagenes/              # Pixel art de cada ave (copeton.png, bichofue.png, mirla.png)
+├── imagenes/              # Pixel art de cada ave (copeton.png, mirla.png)
 ├── models/
 │   └── vectores_promedio.json   # Modelo entrenado (se genera)
 └── graficas/              # Imágenes de espectros (se genera)
@@ -173,8 +172,7 @@ python graficas.py
     "cortes_hz": [3000, 4750],
     "vectores_promedio": {
         "Carpeta_Mirla":    [ 10.11, 6001.22, 40.00 ],
-        "Carpeta_Copeton":  [ 0.00, 0.00, 0.00 ],
-        "Carpeta_Bichofue": [ 0.00, 0.00, 0.00 ]
+        "Carpeta_Copeton":  [ 0.00, 0.00, 0.00 ]
     }
 }
 ```
