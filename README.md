@@ -71,9 +71,11 @@ $$E_{C} = \frac{1}{M}\sum_{j=1}^{M}E^{(j)}$$
 
 $$d_C = \|E_X - E_C\| = \sqrt{\sum_{i=1}^{3}\left(E_{Xi}-E_{Ci}\right)^2} \qquad\qquad \text{tipo}_X = \arg\min_C\, d_C$$
 
-**Partición:** los cortes se escogen para que las energías de las subbandas equivalentes de cada ave sean muy diferentes. «Sugerir cortes» prueba todas las combinaciones sobre una rejilla de 250 Hz (entre 2 y 9 kHz) y marca la que más audios de entrenamiento deja junto al vector de su ave.
+**Partición:** el vector FFT completo ($k = 0,\dots,N-1$) se divide en 3 subbandas; la tercera incluye la mitad reflejada. Los cortes se escogen para que las energías de las subbandas equivalentes de cada ave sean muy diferentes. «Sugerir cortes» prueba todas las combinaciones sobre una rejilla de 250 Hz (entre 2 y 9 kHz) y marca la que más audios de entrenamiento deja junto al vector de su ave. Con `CRITERIO_PARTICION = "distancia"` en `trainer.py` escoge en cambio la que hace máxima la distancia $\|E_A - E_B\|$ entre vectores promedio, que es el criterio literal del documento pero reconoce peor con estos audios.
 
-**Acondicionamiento** (igual al entrenar y al reconocer, antes de la FFT): filtro Butterworth pasa-altos de 2 kHz, para que el ruido grave del micrófono no entre a las subbandas, y escalado a energía unitaria, para que el volumen de la grabación no cambie el vector. Los parámetros están en `preprocesamiento.py`.
+**Verificación:** `python verificar_documento.py` calcula el ejemplo de 8 puntos del documento con las funciones de `core.py` y compara cada resultado con el del documento.
+
+**Acondicionamiento** (agregado al documento; igual al entrenar y al reconocer, antes de la FFT): filtro Butterworth pasa-altos de 2 kHz, para que el ruido grave del micrófono no entre a las subbandas, y escalado a energía unitaria, para que el volumen de la grabación no cambie el vector. Los parámetros están en `preprocesamiento.py`.
 
 El espectro promedio $\|C(k)\|_m$ se usa solo para las gráficas.
 
@@ -85,7 +87,8 @@ El espectro promedio $\|C(k)\|_m$ se usa solo para las gráficas.
 .
 ├── DownloaderData.py      # Descarga y valida grabaciones (API de Xeno-canto)
 ├── audioAnalizer.py       # Analiza duraciones y recorta cada audio a 3 s
-├── preprocesamiento.py    # Parámetros de audio (fs, duración) y normalización
+├── preprocesamiento.py    # Parámetros de audio y preprocesamiento (no hace parte de las fórmulas)
+├── verificar_documento.py # Comprueba core.py con el ejemplo de 8 puntos del documento
 ├── core.py                # ★ Núcleo: espectro, energía, vector promedio, distancia euclidiana
 ├── trainer.py             # Lógica de entrenamiento y guardado del modelo
 ├── recognizer.py          # Grabación en vivo y decisión

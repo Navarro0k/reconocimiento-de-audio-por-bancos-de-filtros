@@ -1,4 +1,14 @@
-"""Parámetros de audio y normalización (igual que los WAV de entrenamiento de audioAnalizer.py)."""
+"""
+Parámetros de audio y preprocesamiento de la señal, antes de la FFT.
+
+Nada de este archivo hace parte de las fórmulas del documento (esas están en core.py):
+son agregados para que una grabación real del micrófono sea comparable con los audios
+de entrenamiento. Todo se aplica igual al entrenar y al reconocer.
+
+  normalizar()    pico a 0.9 y 16 bits, como los WAV de audioAnalizer.py
+  filtrar()       media móvil de M puntos             (USAR_FILTRO)
+  acondicionar()  pasa-altos y energía unitaria       (USAR_PASA_ALTOS)
+"""
 import numpy as np
 from scipy import signal
 from filtro import MovingAverageFilter
