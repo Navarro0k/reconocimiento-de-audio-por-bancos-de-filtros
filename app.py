@@ -261,6 +261,10 @@ class PestanaReconocimiento(ctk.CTkFrame):
     # --- reconocimiento ---
     def terminar(self):
         x = recognizer.terminar_grabacion(self.buffer)
+        try:
+            recognizer.guardar_grabacion(x)
+        except OSError:
+            pass   # no poder guardar la copia no debe impedir el reconocimiento
         self.btn.configure(state="normal")
         self.progreso.set(1)
         if abs(x).max() < 1e-3:

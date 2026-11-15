@@ -1,6 +1,8 @@
 """Fase de reconocimiento (lógica). La interfaz está en app.py."""
+import os
 import json
 import math
+import time
 import core
 from preprocesamiento import FS, N
 from trainer import RUTA_MODELO, METODO
@@ -31,6 +33,18 @@ def terminar_grabacion(buffer):
     import sounddevice as sd
     sd.wait()
     return buffer[:, 0]
+
+
+CARPETA_GRABACIONES = "grabaciones"   # copia de cada grabación del micrófono (no se sube al repo)
+
+
+def guardar_grabacion(x):
+    """Guarda la grabación cruda del micrófono como WAV, para poder revisar después qué se oyó."""
+    from scipy.io import wavfile
+    os.makedirs(CARPETA_GRABACIONES, exist_ok=True)
+    ruta = os.path.join(CARPETA_GRABACIONES, time.strftime("grabacion_%Y%m%d_%H%M%S.wav"))
+    wavfile.write(ruta, FS, x.astype("float32"))
+    return ruta
 
 
 def reconocer(x, cortes_hz, E_promedio):
