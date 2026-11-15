@@ -73,7 +73,7 @@ def crear_grafica(padre):
 class PestanaEntrenamiento(ctk.CTkFrame):
     def __init__(self, master):
         super().__init__(master, fg_color="transparent")
-        self.promedios, self.cortes, self.lineas = {}, [], []
+        self.promedios, self.espectros, self.cortes, self.lineas = {}, {}, [], []
 
         barra = ctk.CTkFrame(self, fg_color="transparent")
         barra.pack(fill="x", pady=(0, 6))
@@ -97,10 +97,11 @@ class PestanaEntrenamiento(ctk.CTkFrame):
 
     def cargar(self):
         try:
-            self.fs, self.frec, self.promedios = trainer.cargar_promedios()
+            self.fs, self.frec, self.espectros = trainer.cargar_espectros()
         except Exception as e:
             messagebox.showerror("Error", str(e))
             return
+        self.promedios = trainer.promedios_de(self.espectros)
         self.cortes, self.lineas = [], []
         self.ax.clear()
         for ave, z in self.promedios.items():
@@ -145,14 +146,14 @@ class PestanaEntrenamiento(ctk.CTkFrame):
 
     def guardar(self):
         try:
-            vectores = trainer.guardar_modelo(self.fs, self.frec, self.promedios, self.cortes)
+            vectores = trainer.guardar_modelo(self.fs, self.frec, self.espectros, self.cortes)
         except ValueError as e:
             messagebox.showerror("Cortes no válidos", f"{e}\n\nDeshaz el corte y marca otro.")
             return
         for w in self.resultado.winfo_children():
             w.destroy()
         ctk.CTkLabel(self.resultado, anchor="w", text=f"Modelo guardado en {trainer.RUTA_MODELO} "
-                     "— vector de energías de cada ave:").pack(fill="x")
+                     "— vector promedio de energías de cada ave:").pack(fill="x")
         filas = [[nombre(a)] + numeros(v) for a, v in vectores.items()]
         tabla(self.resultado, ["Ave"] + rangos(self.cortes, self.fs / 2), filas).pack(anchor="w")
 
