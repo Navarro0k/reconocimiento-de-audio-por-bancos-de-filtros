@@ -12,7 +12,7 @@ colores = {"Carpeta_Copeton": "tab:blue", "Carpeta_Bichofue": "tab:orange",
            "Carpeta_Mirla": "tab:green"}
 
 # Cortes elegidos por el usuario en trainer.py
-with open(os.path.join("models", "umbrales_energia.json")) as f:
+with open(trainer.RUTA_MODELO) as f:
     cortes_hz = json.load(f)["cortes_hz"]
 
 os.makedirs(carpeta_salida, exist_ok=True)

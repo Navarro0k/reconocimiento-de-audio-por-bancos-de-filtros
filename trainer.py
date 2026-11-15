@@ -11,8 +11,8 @@ CARPETA = "audio_3s"   # WAV de 3 s ya filtrados por audioAnalizer.py
 AVES = ["Carpeta_Copeton", "Carpeta_Bichofue", "Carpeta_Mirla"]
 COLORES = {"Carpeta_Copeton": "tab:blue", "Carpeta_Bichofue": "tab:orange",
            "Carpeta_Mirla": "tab:green"}
-RUTA_MODELO = os.path.join("models", "umbrales_energia.json")
-METODO = "energia_por_senal_euclidiana"   # identifica cómo se entrenó el modelo guardado
+RUTA_MODELO = os.path.join("models", "vectores_promedio.json")
+METODO = "vector_completo_euclidiana"   # identifica cómo se entrenó el modelo guardado
 
 
 def espectros_de_carpeta(ruta):
@@ -130,6 +130,7 @@ def guardar_modelo(fs, frec, espectros, cortes_hz):
     vectores = vectores_promedio(frec, espectros, cortes_hz)
     os.makedirs(os.path.dirname(RUTA_MODELO), exist_ok=True)
     with open(RUTA_MODELO, "w") as f:
-        json.dump({"metodo": METODO, "fs": fs, "cortes_hz": sorted(cortes_hz), "energias": vectores},
+        json.dump({"metodo": METODO, "fs": fs, "cortes_hz": sorted(cortes_hz),
+                   "vectores_promedio": vectores},
                   f, indent=4, allow_nan=False)
     return vectores

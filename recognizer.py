@@ -10,14 +10,14 @@ def cargar_modelo():
     """(cortes_hz, {ave: vector promedio de energías E_ave})"""
     with open(RUTA_MODELO) as f:
         m = json.load(f)
-    if m.get("metodo") != METODO:
+    if m.get("metodo") != METODO or "vectores_promedio" not in m:
         raise ValueError("El modelo guardado se entrenó con una versión anterior del método. "
                          "Vuelve a entrenar en la pestaña Entrenamiento.")
-    for ave, vector in m["energias"].items():
+    for ave, vector in m["vectores_promedio"].items():
         if any(not math.isfinite(e) for e in vector):
             raise ValueError(f"El modelo guardado tiene energías nan para {ave} "
                              "(subbanda vacía por cortes repetidos). Vuelve a entrenar.")
-    return m["cortes_hz"], m["energias"]
+    return m["cortes_hz"], m["vectores_promedio"]
 
 
 def iniciar_grabacion():

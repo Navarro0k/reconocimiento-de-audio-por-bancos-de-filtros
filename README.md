@@ -46,7 +46,7 @@ flowchart LR
     C --> D[Elegir 3 cortes<br/>a mano o sugeridos]
     D --> E[Vector de energías<br/>de cada audio]
     E --> E2[Vector promedio<br/>por ave]
-    E2 --> F[(umbrales_energia.json)]
+    E2 --> F[(vectores_promedio.json)]
     G[🎙️ Micrófono] --> H[Vector de energía<br/>de la señal]
     F --> I{Distancia euclidiana<br/>mínima}
     H --> I
@@ -96,7 +96,7 @@ El espectro promedio $\|C(k)\|_m$ se usa solo para las gráficas.
 ├── audio_3s/              # WAV recortados a 3 s (se genera)
 ├── imagenes/              # Pixel art de cada ave (copeton.png, bichofue.png, mirla.png)
 ├── models/
-│   └── umbrales_energia.json   # Modelo entrenado (se genera)
+│   └── vectores_promedio.json   # Modelo entrenado (se genera)
 └── graficas/              # Imágenes de espectros (se genera)
 ```
 
@@ -161,14 +161,14 @@ python graficas.py
 
 ## 📦 Formato del modelo
 
-`models/umbrales_energia.json` guarda el método de entrenamiento, la frecuencia de muestreo, los cortes en Hz y el vector promedio de energías de cada ave (los valores son un ejemplo):
+`models/vectores_promedio.json` guarda el método de entrenamiento, la frecuencia de muestreo, los cortes en Hz y el vector promedio de energías de cada ave (los valores son un ejemplo):
 
 ```json
 {
-    "metodo": "energia_por_senal_euclidiana",
+    "metodo": "vector_completo_euclidiana",
     "fs": 22050,
     "cortes_hz": [3500, 6000, 9000],
-    "energias": {
+    "vectores_promedio": {
         "Carpeta_Mirla":    [ 10.11, 6001.22, 40.00, 9.50 ],
         "Carpeta_Copeton":  [ 0.00, 0.00, 0.00, 0.00 ],
         "Carpeta_Bichofue": [ 0.00, 0.00, 0.00, 0.00 ]
