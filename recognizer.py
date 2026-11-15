@@ -3,13 +3,16 @@ import json
 import math
 import core
 from preprocesamiento import FS, N
-from trainer import RUTA_MODELO
+from trainer import RUTA_MODELO, METODO
 
 
 def cargar_modelo():
     """(cortes_hz, {ave: vector de umbrales de energía})"""
     with open(RUTA_MODELO) as f:
         m = json.load(f)
+    if m.get("metodo") != METODO:
+        raise ValueError("El modelo guardado se entrenó con una versión anterior del método. "
+                         "Vuelve a entrenar en la pestaña Entrenamiento.")
     for ave, vector in m["energias"].items():
         if any(not math.isfinite(e) for e in vector):
             raise ValueError(f"El modelo guardado tiene energías nan para {ave} "
@@ -32,13 +35,14 @@ def terminar_grabacion(buffer):
 
 def reconocer(x, cortes_hz, umbrales):
     """
-    E_X = vector de energía de la señal. Por cada ave: diferencias |E_Xi - E_ave,i| y su suma E_X<ave>.
-    Devuelve (resultados, E_X); resultados = [(ave, diferencias, suma)] de menor a mayor suma,
+    x = señal ya acondicionada (preprocesamiento.acondicionar). E_X = su vector de energías.
+    Por cada ave: diferencias |E_Xi - E_ave,i| y distancia euclidiana d = ||E_X - E_ave||.
+    Devuelve (resultados, E_X); resultados = [(ave, diferencias, d)] de menor a mayor distancia,
     así que resultados[0] es el tipo reconocido.
     """
     z = core.espectro(x)
     indices = core.indices_de_corte(core.frecuencias(len(x), FS), cortes_hz)
     E_X = core.energias_subbandas(z, indices)
-    resultados = [(ave, core.diferencias_absolutas(E_X, E), core.suma_diferencias_absolutas(E_X, E))
+    resultados = [(ave, core.diferencias_absolutas(E_X, E), core.distancia_euclidiana(E_X, E))
                   for ave, E in umbrales.items()]
     return sorted(resultados, key=lambda r: r[2]), E_X

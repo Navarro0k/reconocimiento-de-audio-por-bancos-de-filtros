@@ -11,7 +11,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 import core
 import trainer
 import recognizer
-from preprocesamiento import FS, DURACION, normalizar, filtrar
+from preprocesamiento import FS, DURACION, normalizar, filtrar, acondicionar
 
 N_CORTES = 3   # -> 4 subbandas
 SEPARACION_MIN_HZ = 100   # distancia mínima entre cortes (y a 0 Hz / fs/2) para no dejar subbandas vacías
@@ -226,18 +226,18 @@ class PestanaReconocimiento(ctk.CTkFrame):
             self.estado.configure(text="No se detectó sonido")
             return
         self.estado.configure(text="Listo")
-        x = filtrar(normalizar(x))
+        x = acondicionar(filtrar(normalizar(x)))
         try:
             cortes, umbrales = recognizer.cargar_modelo()
         except ValueError as e:
             messagebox.showerror("Modelo no válido", str(e))
             return
         resultados, E_X = recognizer.reconocer(x, cortes, umbrales)
-        ganador, _, suma = resultados[0]
+        ganador, _, distancia = resultados[0]
         self.mostrar_tablas(cortes, umbrales, resultados, E_X)
         self.titulo.configure(text=nombre(ganador))
         self.mostrar_imagen(ganador)
-        self.subtitulo.configure(text=f"Menor suma de diferencias absolutas: {suma:,.2f}")
+        self.subtitulo.configure(text=f"Menor distancia euclidiana: {distancia:,.2f}")
         self.graficar(x, ganador, cortes)
 
     def mostrar_imagen(self, ave):
@@ -262,10 +262,10 @@ class PestanaReconocimiento(ctk.CTkFrame):
         filas += [[f"Promedio {nombre(a)}"] + numeros(umbrales[a]) for a, _, _ in resultados]
         tabla(self.tablas, ["Vectores"] + enc, filas).pack(anchor="w", pady=(0, 12))
 
-        ctk.CTkLabel(self.tablas, text="Diferencias absolutas |E_Xi − E_ave,i|", anchor="w",
+        ctk.CTkLabel(self.tablas, text="Diferencias |E_Xi − E_ave,i| y distancia euclidiana d = ||E_X − E_ave||", anchor="w",
                      font=ctk.CTkFont(weight="bold")).pack(fill="x")
         filas = [[nombre(a)] + numeros(d) + [f"{s:,.2f}"] for a, d, s in resultados]
-        tabla(self.tablas, ["Ave"] + enc + ["Σ"], filas, resaltar=0).pack(anchor="w")
+        tabla(self.tablas, ["Ave"] + enc + ["d"], filas, resaltar=0).pack(anchor="w")
 
     def graficar(self, x, ganador, cortes):
         if ganador not in self.cache:
