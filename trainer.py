@@ -90,7 +90,7 @@ def evaluar(frec, espectros, cortes_hz):
     return aciertos
 
 
-def sugerir_cortes(frec, espectros, n_cortes=3, paso_hz=250, f_min=500, f_max=10000, separacion_hz=500):
+def sugerir_cortes(frec, espectros, n_cortes=2, paso_hz=250, f_min=500, f_max=10000, separacion_hz=500):
     """
     Busca la partición que hace más diferentes las energías de las subbandas de cada ave:
     prueba todas las combinaciones de n_cortes sobre una rejilla de paso_hz y devuelve

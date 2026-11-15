@@ -27,7 +27,7 @@ Este proyecto reconoce **tres especies de aves** a partir de su canto, sin redes
 
 **Características**
 
-- 🎛️ **Entrenamiento interactivo:** tú eliges sobre la gráfica los 3 puntos que dividen el espectro en 4 subbandas.
+- 🎛️ **Entrenamiento interactivo:** tú eliges sobre la gráfica los 2 puntos que dividen el vector FFT en 3 subbandas, o dejas que la app los sugiera.
 - 🎙️ **Reconocimiento en vivo:** graba 3 s desde el micrófono y muestra el resultado al instante.
 - 📊 **Resultados claros:** vector de energías, diferencias por subbanda, distancia euclidiana y comparación de espectros.
 - 🐤 **Imagen del ave reconocida** junto al resultado.
@@ -43,7 +43,7 @@ flowchart LR
     A[Grabaciones<br/>Xeno-canto] --> B[Recorte a 3 s]
     B --> B2[Pasa-altos y<br/>energía unitaria]
     B2 --> C[FFT de cada audio]
-    C --> D[Elegir 3 cortes<br/>a mano o sugeridos]
+    C --> D[Elegir 2 cortes<br/>a mano o sugeridos]
     D --> E[Vector de energías<br/>de cada audio]
     E --> E2[Vector promedio<br/>por ave]
     E2 --> F[(vectores_promedio.json)]
@@ -61,7 +61,7 @@ $$\|X(k)\| = \left|\,\mathrm{fft}(x)\,\right|$$
 
 **Energía promedio** de cada subbanda $i$ (con $N_i$ puntos) de una señal, y su **vector de energías**:
 
-$$E_{i} = \frac{1}{N_i}\sum_{k}\|X_i(k)\|^{2} \qquad\qquad E = \left[E_{1}\;\;E_{2}\;\;E_{3}\;\;E_{4}\right]$$
+$$E_{i} = \frac{1}{N_i}\sum_{k}\|X_i(k)\|^{2} \qquad\qquad E = \left(E_{1}\;\;E_{2}\;\;E_{3}\right)$$
 
 **Vector promedio** de una ave $C$ con $M$ grabaciones:
 
@@ -69,7 +69,7 @@ $$E_{C} = \frac{1}{M}\sum_{j=1}^{M}E^{(j)}$$
 
 **Decisión:** distancia euclidiana entre el vector de la señal $X$ y el de cada ave; gana la menor.
 
-$$d_C = \|E_X - E_C\| = \sqrt{\sum_{i=1}^{4}\left(E_{Xi}-E_{Ci}\right)^2} \qquad\qquad \text{tipo}_X = \arg\min_C\, d_C$$
+$$d_C = \|E_X - E_C\| = \sqrt{\sum_{i=1}^{3}\left(E_{Xi}-E_{Ci}\right)^2} \qquad\qquad \text{tipo}_X = \arg\min_C\, d_C$$
 
 **Partición:** los cortes se escogen para que las energías de las subbandas equivalentes de cada ave sean muy diferentes. «Sugerir cortes» prueba todas las combinaciones sobre una rejilla de 250 Hz y marca la que más audios de entrenamiento deja junto al vector de su ave.
 
@@ -146,7 +146,7 @@ python app.py
 
 | Pestaña | Qué hacer |
 |---|---|
-| **Entrenamiento** | `Cargar espectros` → clic izquierdo en la gráfica para marcar **3 cortes** (clic derecho deshace) → `Entrenar y guardar` |
+| **Entrenamiento** | `Cargar espectros` → clic izquierdo en la gráfica para marcar **2 cortes** (o `Sugerir cortes`) (clic derecho deshace) → `Entrenar y guardar` |
 | **Reconocimiento** | `Grabar 3 s y reconocer` → acerca el micrófono al canto y mira el resultado |
 
 > 💡 Si usas la lupa o el modo mover de la barra de zoom, los clics no agregan cortes: desactívala para marcarlos.
@@ -167,11 +167,11 @@ python graficas.py
 {
     "metodo": "vector_completo_euclidiana",
     "fs": 22050,
-    "cortes_hz": [3500, 6000, 9000],
+    "cortes_hz": [3000, 4750],
     "vectores_promedio": {
-        "Carpeta_Mirla":    [ 10.11, 6001.22, 40.00, 9.50 ],
-        "Carpeta_Copeton":  [ 0.00, 0.00, 0.00, 0.00 ],
-        "Carpeta_Bichofue": [ 0.00, 0.00, 0.00, 0.00 ]
+        "Carpeta_Mirla":    [ 10.11, 6001.22, 40.00 ],
+        "Carpeta_Copeton":  [ 0.00, 0.00, 0.00 ],
+        "Carpeta_Bichofue": [ 0.00, 0.00, 0.00 ]
     }
 }
 ```

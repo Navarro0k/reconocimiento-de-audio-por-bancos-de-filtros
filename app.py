@@ -13,7 +13,7 @@ import trainer
 import recognizer
 from preprocesamiento import FS, DURACION, normalizar, filtrar, acondicionar
 
-N_CORTES = 3   # -> 4 subbandas
+N_CORTES = 2   # -> 3 subbandas, como en el documento
 SEPARACION_MIN_HZ = 100   # distancia mínima entre cortes (y a 0 Hz / fs/2) para no dejar subbandas vacías
 VERDE = "#c8f0cf"
 CARPETA_IMAGENES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "imagenes")
@@ -25,7 +25,8 @@ def nombre(ave):
 
 
 def rangos(cortes_hz, fmax):
-    """Encabezados de subbanda: 'S1 (0.0–3.5 kHz)', ..."""
+    """Encabezados de subbanda: 'S1 (0.0–3.5 kHz)', ... La última llega hasta fs porque la
+    partición se hace sobre el vector FFT completo (incluye la mitad reflejada)."""
     lim = [0] + sorted(cortes_hz) + [fmax]
     return [f"S{i + 1} ({lim[i] / 1000:.1f}–{lim[i + 1] / 1000:.1f} kHz)" for i in range(len(lim) - 1)]
 
@@ -181,7 +182,7 @@ class PestanaEntrenamiento(ctk.CTkFrame):
                      "— vector promedio de energías de cada ave:").pack(fill="x")
         aciertos = trainer.evaluar(self.frec, self.espectros, self.cortes)
         filas = [[nombre(a)] + numeros(v) + [f"{100 * aciertos[a]:.0f} %"] for a, v in vectores.items()]
-        tabla(self.resultado, ["Ave"] + rangos(self.cortes, self.fs / 2) + ["Acierto entrenamiento"],
+        tabla(self.resultado, ["Ave"] + rangos(self.cortes, self.fs) + ["Acierto entrenamiento"],
               filas).pack(anchor="w")
 
 
@@ -282,7 +283,7 @@ class PestanaReconocimiento(ctk.CTkFrame):
         aves = sorted(d, key=d.get)   # de menor a mayor distancia: la primera es la reconocida
         for w in self.tablas.winfo_children():
             w.destroy()
-        enc = rangos(cortes, FS / 2)
+        enc = rangos(cortes, FS)
         ctk.CTkLabel(self.tablas, text="Vectores de energía", anchor="w",
                      font=ctk.CTkFont(weight="bold")).pack(fill="x")
         filas = [["E_x (grabación)"] + numeros(E_x)]
