@@ -40,6 +40,11 @@ def numeros(v):
     return [f"{e:,.2f}" for e in v]
 
 
+def numeros_cortos(v):
+    """Como numeros(), pero en notación científica los valores muy grandes."""
+    return [f"{e:.3e}" if abs(e) >= 1e7 else f"{e:,.2f}" for e in v]
+
+
 def tabla(padre, encabezados, filas, resaltar=None):
     """Tabla con rejilla; la fila `resaltar` se pinta de verde."""
     marco = ctk.CTkFrame(padre, fg_color="gray40", corner_radius=0)
@@ -250,16 +255,15 @@ class PestanaReconocimiento(ctk.CTkFrame):
         self.estado.configure(text="Listo")
         x = acondicionar(filtrar(normalizar(x)))
         try:
-            cortes, umbrales = recognizer.cargar_modelo()
+            cortes, E_promedio = recognizer.cargar_modelo()
         except ValueError as e:
             messagebox.showerror("Modelo no válido", str(e))
             return
-        resultados, E_X = recognizer.reconocer(x, cortes, umbrales)
-        ganador, _, distancia = resultados[0]
-        self.mostrar_tablas(cortes, umbrales, resultados, E_X)
+        ganador, d, E_x = recognizer.reconocer(x, cortes, E_promedio)
+        self.mostrar_tablas(cortes, E_promedio, d, E_x)
         self.titulo.configure(text=nombre(ganador))
         self.mostrar_imagen(ganador)
-        self.subtitulo.configure(text=f"Menor distancia euclidiana: {distancia:,.2f}")
+        self.subtitulo.configure(text=f"Menor distancia euclidiana: {d[ganador]:,.2f}")
         self.graficar(x, ganador, cortes)
 
     def mostrar_imagen(self, ave):
@@ -274,19 +278,21 @@ class PestanaReconocimiento(ctk.CTkFrame):
         else:
             self.foto.pack_forget()
 
-    def mostrar_tablas(self, cortes, umbrales, resultados, E_X):
+    def mostrar_tablas(self, cortes, E_promedio, d, E_x):
+        aves = sorted(d, key=d.get)   # de menor a mayor distancia: la primera es la reconocida
         for w in self.tablas.winfo_children():
             w.destroy()
         enc = rangos(cortes, FS / 2)
         ctk.CTkLabel(self.tablas, text="Vectores de energía", anchor="w",
                      font=ctk.CTkFont(weight="bold")).pack(fill="x")
-        filas = [["Grabación X"] + numeros(E_X)]
-        filas += [[f"Promedio {nombre(a)}"] + numeros(umbrales[a]) for a, _, _ in resultados]
+        filas = [["E_x (grabación)"] + numeros(E_x)]
+        filas += [[f"E_{nombre(a)}"] + numeros(E_promedio[a]) for a in aves]
         tabla(self.tablas, ["Vectores"] + enc, filas).pack(anchor="w", pady=(0, 12))
 
-        ctk.CTkLabel(self.tablas, text="Diferencias |E_Xi − E_ave,i| y distancia euclidiana d = ||E_X − E_ave||", anchor="w",
+        ctk.CTkLabel(self.tablas, text="Términos (E_xi − E_ave,i)² y distancia d = ||E_x − E_ave|| = √Σ", anchor="w",
                      font=ctk.CTkFont(weight="bold")).pack(fill="x")
-        filas = [[nombre(a)] + numeros(d) + [f"{s:,.2f}"] for a, d, s in resultados]
+        filas = [[nombre(a)] + numeros_cortos([(ex - ea) ** 2 for ex, ea in zip(E_x, E_promedio[a])])
+                 + [f"{d[a]:,.2f}"] for a in aves]
         tabla(self.tablas, ["Ave"] + enc + ["d"], filas, resaltar=0).pack(anchor="w")
 
     def graficar(self, x, ganador, cortes):

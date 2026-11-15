@@ -1,11 +1,12 @@
 """
-core.py - Fórmulas del proyecto (PROYECTO_FINAL).
+core.py - Fórmulas del documento del proyecto, en el orden en que se aplican.
 
-  y = fft(x);  z = abs(y)                 -> ||X(k)||
-  E_i  = (1/N_i) * sum_k ||X_i(k)||^2     -> energía promedio de la subbanda i de una señal
-  E_C  = promedio{ E de cada señal de C } -> vector promedio de energías de la clase C
-  d_C  = ||E_X - E_C|| = sqrt( sum_i (E_Xi - E_Ci)^2 )   -> distancia euclidiana
-  La señal X se reconoce como la clase de menor distancia.
+  1. X(k) = fft(x),  k = 0, ..., N-1                   espectro() y vector_completo()
+  2. Partición en subbandas X_1, X_2, X_3               particion()
+  3. E_i = (1/N_i) * sum_k ||X_i(k)||^2                 energia() y vector_energias()
+  4. E_A = promedio de los vectores E de las señales A  vector_promedio()
+  5. d_A = ||E_x - E_A|| = sqrt(sum_i (E_xi - E_Ai)^2)  distancia_euclidiana() y distancias()
+  6. x es del tipo con la menor distancia               tipo_reconocido()
 """
 import numpy as np
 
@@ -70,16 +71,22 @@ def vector_energias(X, k_cortes):
     return [energia(X_i) for X_i in particion(X, k_cortes)]
 
 
-def diferencias_absolutas(E_X, E_C):
-    """Vector [ |E_X1 - E_C1|, ..., |E_XS - E_CS| ]"""
-    return np.abs(np.asarray(E_X) - np.asarray(E_C))
-
-
 def vector_promedio(vectores):
-    """E_C = promedio de los vectores de energía [E_1 ... E_S] de las señales de una clase."""
+    """E_A = promedio de los vectores de energía de las señales de la clase A."""
     return np.mean(np.asarray(vectores, dtype=np.float64), axis=0).tolist()
 
 
-def distancia_euclidiana(E_X, E_C):
-    """d = ||E_X - E_C|| = sqrt( sum_i (E_Xi - E_Ci)^2 )"""
-    return float(np.sqrt(np.sum((np.asarray(E_X, dtype=np.float64) - np.asarray(E_C, dtype=np.float64)) ** 2)))
+def distancia_euclidiana(E_x, E_A):
+    """d_A = ||E_x - E_A|| = sqrt( sum_i (E_xi - E_Ai)^2 )"""
+    E_x, E_A = np.asarray(E_x, dtype=np.float64), np.asarray(E_A, dtype=np.float64)
+    return float(np.sqrt(np.sum((E_x - E_A) ** 2)))
+
+
+def distancias(E_x, E_promedio):
+    """{clase: d_clase} con d_clase = ||E_x - E_clase||, para cada vector promedio."""
+    return {clase: distancia_euclidiana(E_x, E_clase) for clase, E_clase in E_promedio.items()}
+
+
+def tipo_reconocido(d):
+    """La señal es del tipo cuya distancia es la menor."""
+    return min(d, key=d.get)

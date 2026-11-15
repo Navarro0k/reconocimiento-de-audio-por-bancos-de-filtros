@@ -7,7 +7,7 @@ from trainer import RUTA_MODELO, METODO
 
 
 def cargar_modelo():
-    """(cortes_hz, {ave: vector de umbrales de energía})"""
+    """(cortes_hz, {ave: vector promedio de energías E_ave})"""
     with open(RUTA_MODELO) as f:
         m = json.load(f)
     if m.get("metodo") != METODO:
@@ -33,16 +33,15 @@ def terminar_grabacion(buffer):
     return buffer[:, 0]
 
 
-def reconocer(x, cortes_hz, umbrales):
+def reconocer(x, cortes_hz, E_promedio):
     """
-    x = señal ya acondicionada (preprocesamiento.acondicionar). E_X = su vector de energías.
-    Por cada ave: diferencias |E_Xi - E_ave,i| y distancia euclidiana d = ||E_X - E_ave||.
-    Devuelve (resultados, E_X); resultados = [(ave, diferencias, d)] de menor a mayor distancia,
-    así que resultados[0] es el tipo reconocido.
+    Reconoce la señal x (ya acondicionada) siguiendo los pasos del documento.
+    Devuelve (tipo, d, E_x): el ave reconocida, {ave: distancia} y el vector de energías de x.
     """
-    z = core.espectro(x)
-    indices = core.indices_de_corte(core.frecuencias(len(x), FS), cortes_hz)
-    E_X = core.vector_energias(core.vector_completo(z, len(x)), indices)
-    resultados = [(ave, core.diferencias_absolutas(E_X, E), core.distancia_euclidiana(E_X, E))
-                  for ave, E in umbrales.items()]
-    return sorted(resultados, key=lambda r: r[2]), E_X
+    N = len(x)
+    X = core.vector_completo(core.espectro(x), N)                          # 1. ||X(k)||, k = 0..N-1
+    k_cortes = core.indices_de_corte(core.frecuencias(N, FS), cortes_hz)
+    E_x = core.vector_energias(X, k_cortes)                                # 2 y 3. E_x = (E_1, E_2, E_3)
+    d = core.distancias(E_x, E_promedio)                                   # 5. d_ave = ||E_x - E_ave||
+    tipo = core.tipo_reconocido(d)                                         # 6. menor distancia
+    return tipo, d, E_x
