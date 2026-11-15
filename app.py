@@ -80,12 +80,15 @@ class PestanaEntrenamiento(ctk.CTkFrame):
         ctk.CTkButton(barra, text="Cargar espectros", command=self.cargar).pack(side="left")
         ctk.CTkButton(barra, text="Deshacer corte", fg_color="gray50", command=self.deshacer
                       ).pack(side="left", padx=8)
+        self.btn_sugerir = ctk.CTkButton(barra, text="Sugerir cortes", state="disabled",
+                                         command=self.sugerir)
+        self.btn_sugerir.pack(side="left", padx=(0, 8))
         self.btn_guardar = ctk.CTkButton(barra, text="Entrenar y guardar", state="disabled",
                                          command=self.guardar)
         self.btn_guardar.pack(side="left")
         self.info = ctk.CTkLabel(self, anchor="w", text=(
             f"1) Carga los espectros  2) Clic izquierdo en la gráfica para marcar {N_CORTES} cortes "
-            "(clic derecho deshace)  3) Entrena y guarda. Usa la lupa de la barra para hacer zoom."))
+            "(clic derecho deshace) o usa «Sugerir cortes»  3) Entrena y guarda. Usa la lupa de la barra para hacer zoom."))
         self.info.pack(fill="x")
 
         zona = ctk.CTkFrame(self, fg_color="transparent")
@@ -112,6 +115,7 @@ class PestanaEntrenamiento(ctk.CTkFrame):
         self.ax.legend(loc="upper right")
         self.canvas.draw_idle()
         self.toolbar.update()          # "home" vuelve a esta vista
+        self.btn_sugerir.configure(state="normal")
         self.actualizar()
 
     def clic(self, ev):
@@ -131,6 +135,22 @@ class PestanaEntrenamiento(ctk.CTkFrame):
         elif ev.button == 3:
             self.deshacer()
         self.actualizar()
+
+    def sugerir(self):
+        """Marca los cortes que mejor separan las aves (trainer.sugerir_cortes)."""
+        self.info.configure(text="Buscando la mejor partición...")
+        self.update_idletasks()
+        cortes, acierto = trainer.sugerir_cortes(self.frec, self.espectros, N_CORTES)
+        while self.cortes:
+            self.cortes.pop()
+            self.lineas.pop().remove()
+        for c in cortes:
+            self.cortes.append(c)
+            self.lineas.append(self.ax.axvline(c, color="k", ls="--", lw=1))
+        self.canvas.draw_idle()
+        self.actualizar()
+        self.info.configure(text=self.info.cget("text") + f"  (sugeridos: {100 * acierto:.0f} % de acierto "
+                                                         "con los audios de entrenamiento)")
 
     def deshacer(self):
         if self.cortes:
@@ -154,8 +174,10 @@ class PestanaEntrenamiento(ctk.CTkFrame):
             w.destroy()
         ctk.CTkLabel(self.resultado, anchor="w", text=f"Modelo guardado en {trainer.RUTA_MODELO} "
                      "— vector promedio de energías de cada ave:").pack(fill="x")
-        filas = [[nombre(a)] + numeros(v) for a, v in vectores.items()]
-        tabla(self.resultado, ["Ave"] + rangos(self.cortes, self.fs / 2), filas).pack(anchor="w")
+        aciertos = trainer.evaluar(self.frec, self.espectros, self.cortes)
+        filas = [[nombre(a)] + numeros(v) + [f"{100 * aciertos[a]:.0f} %"] for a, v in vectores.items()]
+        tabla(self.resultado, ["Ave"] + rangos(self.cortes, self.fs / 2) + ["Acierto entrenamiento"],
+              filas).pack(anchor="w")
 
 
 class PestanaReconocimiento(ctk.CTkFrame):
