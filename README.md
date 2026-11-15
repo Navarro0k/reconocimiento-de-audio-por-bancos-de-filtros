@@ -71,7 +71,7 @@ $$E_{C} = \frac{1}{M}\sum_{j=1}^{M}E^{(j)}$$
 
 $$d_C = \|E_X - E_C\| = \sqrt{\sum_{i=1}^{3}\left(E_{Xi}-E_{Ci}\right)^2} \qquad\qquad \text{tipo}_X = \arg\min_C\, d_C$$
 
-**Partición:** los cortes se escogen para que las energías de las subbandas equivalentes de cada ave sean muy diferentes. «Sugerir cortes» prueba todas las combinaciones sobre una rejilla de 250 Hz y marca la que más audios de entrenamiento deja junto al vector de su ave.
+**Partición:** los cortes se escogen para que las energías de las subbandas equivalentes de cada ave sean muy diferentes. «Sugerir cortes» prueba todas las combinaciones sobre una rejilla de 250 Hz (entre 2 y 9 kHz) y marca la que más audios de entrenamiento deja junto al vector de su ave.
 
 **Acondicionamiento** (igual al entrenar y al reconocer, antes de la FFT): filtro Butterworth pasa-altos de 2 kHz, para que el ruido grave del micrófono no entre a las subbandas, y escalado a energía unitaria, para que el volumen de la grabación no cambie el vector. Los parámetros están en `preprocesamiento.py`.
 

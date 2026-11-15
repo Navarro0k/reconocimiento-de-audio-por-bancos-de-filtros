@@ -90,38 +90,22 @@ def evaluar(frec, espectros, cortes_hz):
     return aciertos
 
 
-def sugerir_cortes(frec, espectros, n_cortes=2, paso_hz=250, f_min=500, f_max=10000, separacion_hz=500):
+def sugerir_cortes(frec, espectros, n_cortes=2, paso_hz=250, f_min=2000, f_max=9000, separacion_hz=500):
     """
-    Busca la partición que hace más diferentes las energías de las subbandas de cada ave:
-    prueba todas las combinaciones de n_cortes sobre una rejilla de paso_hz y devuelve
-    (cortes_hz, acierto) de la que más audios de entrenamiento deja junto al vector de su ave
-    (mismo criterio de evaluar(): distancia euclidiana al vector promedio).
+    Escoge la partición: prueba todas las combinaciones de n_cortes sobre una rejilla de
+    paso_hz y devuelve (cortes_hz, acierto) de la que más audios de entrenamiento deja
+    junto al vector promedio de su ave. Tarda unos segundos: recalcula las energías de
+    todos los audios con cada partición.
     """
-    aves = list(espectros)
-    # Suma acumulada de ||X(k)||^2 de cada audio: la energía de una subbanda sale de dos restas
-    N = 2 * (len(frec) - 1)
-    acum = np.concatenate([np.cumsum([np.square(core.vector_completo(z, N), dtype=np.float64)
-                                      for z in espectros[a]], axis=1) for a in aves])
-    acum = np.concatenate([np.zeros((len(acum), 1)), acum], axis=1)
-    clase = np.concatenate([np.full(len(espectros[a]), i) for i, a in enumerate(aves)])
     rejilla = np.arange(f_min, f_max + 1, paso_hz, dtype=float)
-    k_rejilla = core.indices_de_corte(frec, rejilla)
-    salto = max(int(round(separacion_hz / paso_hz)), 1)
-
-    mejor, mejores_cortes = -1.0, None
-    for comb in itertools.combinations(range(len(rejilla)), n_cortes):
-        if any(b - a < salto for a, b in zip(comb, comb[1:])):
+    mejor_acierto, mejores_cortes = -1.0, None
+    for cortes in itertools.combinations(rejilla, n_cortes):
+        if min(np.diff(cortes), default=separacion_hz) < separacion_hz:
             continue
-        lim = np.concatenate(([0], k_rejilla[list(comb)], [N]))
-        if np.any(np.diff(lim) <= 0):
-            continue
-        E = (acum[:, lim[1:]] - acum[:, lim[:-1]]) / np.diff(lim)          # un vector por audio
-        prom = np.stack([E[clase == i].mean(axis=0) for i in range(len(aves))])
-        cercana = np.argmin(((E[:, None, :] - prom[None]) ** 2).sum(axis=2), axis=1)
-        acierto = np.mean([(cercana[clase == i] == i).mean() for i in range(len(aves))])
-        if acierto > mejor:
-            mejor, mejores_cortes = acierto, rejilla[list(comb)].tolist()
-    return mejores_cortes, float(mejor)
+        acierto = np.mean(list(evaluar(frec, espectros, cortes).values()))
+        if acierto > mejor_acierto:
+            mejor_acierto, mejores_cortes = acierto, [float(c) for c in cortes]
+    return mejores_cortes, float(mejor_acierto)
 
 
 def guardar_modelo(fs, frec, espectros, cortes_hz):
