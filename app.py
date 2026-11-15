@@ -2,6 +2,7 @@
 import os
 from tkinter import messagebox
 import customtkinter as ctk
+from PIL import Image
 import matplotlib
 matplotlib.use("TkAgg")
 from matplotlib.figure import Figure
@@ -15,6 +16,8 @@ from preprocesamiento import FS, DURACION, normalizar, filtrar
 N_CORTES = 3   # -> 4 subbandas
 SEPARACION_MIN_HZ = 100   # distancia mínima entre cortes (y a 0 Hz / fs/2) para no dejar subbandas vacías
 VERDE = "#c8f0cf"
+CARPETA_IMAGENES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "imagenes")
+TAM_IMAGEN = 140   # px del ave reconocida
 
 
 def nombre(ave):
@@ -25,6 +28,12 @@ def rangos(cortes_hz, fmax):
     """Encabezados de subbanda: 'S1 (0.0–3.5 kHz)', ..."""
     lim = [0] + sorted(cortes_hz) + [fmax]
     return [f"S{i + 1} ({lim[i] / 1000:.1f}–{lim[i + 1] / 1000:.1f} kHz)" for i in range(len(lim) - 1)]
+
+
+def imagen_ave(ave):
+    """Ruta de la imagen del ave (imagenes/copeton.png, ...) o None si no existe."""
+    ruta = os.path.join(CARPETA_IMAGENES, f"{nombre(ave).lower()}.png")
+    return ruta if os.path.exists(ruta) else None
 
 
 def numeros(v):
@@ -152,6 +161,7 @@ class PestanaReconocimiento(ctk.CTkFrame):
     def __init__(self, master):
         super().__init__(master, fg_color="transparent")
         self.cache = {}     # ave -> (frec, ||C(k)||_m)
+        self.imagenes = {}  # ave -> CTkImage
         self.columnconfigure(1, weight=1)
         self.rowconfigure(1, weight=1)
 
@@ -167,9 +177,15 @@ class PestanaReconocimiento(ctk.CTkFrame):
 
         izq = ctk.CTkFrame(self, fg_color="transparent")
         izq.grid(row=1, column=0, sticky="ns", padx=(0, 10))
-        self.titulo = ctk.CTkLabel(izq, text="", font=ctk.CTkFont(size=28, weight="bold"))
+        cabecera = ctk.CTkFrame(izq, fg_color="transparent")
+        cabecera.pack(anchor="w", fill="x")
+        self.foto = ctk.CTkLabel(cabecera, text="")
+        self.foto.pack(side="left", padx=(0, 12))
+        textos = ctk.CTkFrame(cabecera, fg_color="transparent")
+        textos.pack(side="left", fill="y")
+        self.titulo = ctk.CTkLabel(textos, text="", font=ctk.CTkFont(size=28, weight="bold"))
         self.titulo.pack(anchor="w")
-        self.subtitulo = ctk.CTkLabel(izq, text="", anchor="w")
+        self.subtitulo = ctk.CTkLabel(textos, text="", anchor="w")
         self.subtitulo.pack(anchor="w", pady=(0, 8))
         self.tablas = ctk.CTkFrame(izq, fg_color="transparent")
         self.tablas.pack(anchor="w")
@@ -219,8 +235,21 @@ class PestanaReconocimiento(ctk.CTkFrame):
         ganador, _, suma = resultados[0]
         self.mostrar_tablas(cortes, umbrales, resultados, E_X)
         self.titulo.configure(text=nombre(ganador))
+        self.mostrar_imagen(ganador)
         self.subtitulo.configure(text=f"Menor suma de diferencias absolutas: {suma:,.2f}")
         self.graficar(x, ganador, cortes)
+
+    def mostrar_imagen(self, ave):
+        """Imagen del ave reconocida al lado del nombre (nada si no hay imagen)."""
+        if ave not in self.imagenes:
+            ruta = imagen_ave(ave)
+            self.imagenes[ave] = ctk.CTkImage(Image.open(ruta), size=(TAM_IMAGEN, TAM_IMAGEN)) if ruta else None
+        img = self.imagenes[ave]
+        if img:
+            self.foto.configure(image=img)
+            self.foto.pack(side="left", padx=(0, 12))
+        else:
+            self.foto.pack_forget()
 
     def mostrar_tablas(self, cortes, umbrales, resultados, E_X):
         for w in self.tablas.winfo_children():
