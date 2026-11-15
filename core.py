@@ -2,9 +2,12 @@
 core.py - Fórmulas del proyecto (PROYECTO_FINAL).
 
   y = fft(x);  z = abs(y)                 -> ||X(k)||
-  ||C(k)||_m = promedio{ ||C(k)|| }       -> espectro promedio
-  E_Ci = (1/N_i) * sum_{k=0}^{N_i-1} ||C_i(k)||_m^2
-  E_XC = sum_i | E_Xi - E_Ci |
+  E_i  = (1/N_i) * sum_k ||X_i(k)||^2     -> energía promedio de la subbanda i de una señal
+  E_C  = promedio{ E de cada señal de C } -> vector promedio de energías de la clase C
+  d_C  = ||E_X - E_C|| = sqrt( sum_i (E_Xi - E_Ci)^2 )   -> distancia euclidiana
+  La señal X se reconoce como la clase de menor distancia.
+
+  ||C(k)||_m = promedio{ ||C(k)|| } (espectro promedio) se usa solo para graficar.
 """
 import numpy as np
 
@@ -48,7 +51,7 @@ def validar_cortes(frec, cortes_hz):
 
 
 def energia(subbanda):
-    """E = (1/N_i) * sum ||C_i(k)||_m^2"""
+    """E_i = (1/N_i) * sum_k ||X_i(k)||^2"""
     if len(subbanda) == 0:
         raise ValueError("Subbanda vacía (N_i = 0): no se puede calcular su energía.")
     return float(np.sum(subbanda ** 2) / len(subbanda))
@@ -67,3 +70,13 @@ def diferencias_absolutas(E_X, E_C):
 def suma_diferencias_absolutas(E_X, E_C):
     """E_XC = sum_i | E_Xi - E_Ci |"""
     return float(np.sum(diferencias_absolutas(E_X, E_C)))
+
+
+def vector_promedio(vectores):
+    """E_C = promedio de los vectores de energía [E_1 ... E_S] de las señales de una clase."""
+    return np.mean(np.asarray(vectores, dtype=np.float64), axis=0).tolist()
+
+
+def distancia_euclidiana(E_X, E_C):
+    """d = ||E_X - E_C|| = sqrt( sum_i (E_Xi - E_Ci)^2 )"""
+    return float(np.sqrt(np.sum((np.asarray(E_X, dtype=np.float64) - np.asarray(E_C, dtype=np.float64)) ** 2)))
