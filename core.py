@@ -6,8 +6,6 @@ core.py - Fórmulas del proyecto (PROYECTO_FINAL).
   E_C  = promedio{ E de cada señal de C } -> vector promedio de energías de la clase C
   d_C  = ||E_X - E_C|| = sqrt( sum_i (E_Xi - E_Ci)^2 )   -> distancia euclidiana
   La señal X se reconoce como la clase de menor distancia.
-
-  ||C(k)||_m = promedio{ ||C(k)|| } (espectro promedio) se usa solo para graficar.
 """
 import numpy as np
 
@@ -17,11 +15,6 @@ def espectro(x):
     y = np.fft.rfft(x)
     z = np.abs(y)
     return z
-
-
-def espectro_promedio(lista_espectros):
-    """||C(k)||_m = promedio de los espectros de la carpeta."""
-    return np.mean(lista_espectros, axis=0)
 
 
 def frecuencias(N, fs):
@@ -65,11 +58,6 @@ def energias_subbandas(z, indices_corte):
 def diferencias_absolutas(E_X, E_C):
     """Vector [ |E_X1 - E_C1|, ..., |E_XS - E_CS| ]"""
     return np.abs(np.asarray(E_X) - np.asarray(E_C))
-
-
-def suma_diferencias_absolutas(E_X, E_C):
-    """E_XC = sum_i | E_Xi - E_Ci |"""
-    return float(np.sum(diferencias_absolutas(E_X, E_C)))
 
 
 def vector_promedio(vectores):

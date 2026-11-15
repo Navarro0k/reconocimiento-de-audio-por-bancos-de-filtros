@@ -27,7 +27,7 @@ for ave in carpetas_aves:
     if not espectros:
         continue
     frec = core.frecuencias(2 * (len(espectros[0]) - 1), fs)
-    Zp = core.espectro_promedio(espectros)
+    Zp = trainer.espectro_promedio(espectros)
     promedios[ave] = (frec, Zp)
     indices = core.indices_de_corte(frec, cortes_hz)
     energias = core.energias_subbandas(Zp, indices)

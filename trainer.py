@@ -25,12 +25,17 @@ def espectros_de_carpeta(ruta):
     return fs, lista
 
 
+def espectro_promedio(lista_espectros):
+    """||C(k)||_m = promedio de los espectros de una ave. Solo para graficar: no entra al modelo."""
+    return np.mean(lista_espectros, axis=0)
+
+
 def cargar_promedio(ave):
     """(fs, frec, ||C(k)||_m) de una sola ave. FileNotFoundError si no hay audios."""
     fs, lista = espectros_de_carpeta(os.path.join(CARPETA, ave))
     if not lista:
         raise FileNotFoundError(f"No hay audios en '{CARPETA}/{ave}'.")
-    return fs, core.frecuencias(2 * (len(lista[0]) - 1), fs), core.espectro_promedio(lista)
+    return fs, core.frecuencias(2 * (len(lista[0]) - 1), fs), espectro_promedio(lista)
 
 
 def cargar_espectros():
@@ -51,7 +56,7 @@ def cargar_espectros():
 
 def promedios_de(espectros):
     """{ave: ||C(k)||_m}: espectro promedio de cada ave (solo para graficar)."""
-    return {ave: core.espectro_promedio(lista) for ave, lista in espectros.items()}
+    return {ave: espectro_promedio(lista) for ave, lista in espectros.items()}
 
 
 def cargar_promedios():
