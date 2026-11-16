@@ -55,37 +55,24 @@ def promedios_de(espectros):
             for ave, lista in espectros.items()}
 
 
-def vectores_por_audio(frec, espectros, cortes_hz):
-    """{ave: [vector de energías [E_1 ... E_S] de cada audio]}"""
+def entrenar(fs, frec, espectros, cortes_hz):
+    """Calcula los vectores promedio, mide el acierto y guarda el modelo.
+    Devuelve ({ave: E_ave}, {ave: fracción de audios bien clasificados}).
+    ValueError si los cortes dejan alguna subbanda vacía (no se guarda nada)."""
     indices = utilidades.validar_cortes(frec, cortes_hz)
-    return {ave: [core.energia(z, indices) for z in lista]
-            for ave, lista in espectros.items()}
-
-
-def vectores_promedio(frec, espectros, cortes_hz):
-    """{ave: E_ave}: promedio de los vectores de energía de los audios de cada ave."""
-    return {ave: core.energia_promedio(v) for ave, v in vectores_por_audio(frec, espectros, cortes_hz).items()}
-
-
-def evaluar(frec, espectros, cortes_hz):
-    """{ave: fracción de sus audios de entrenamiento que quedan más cerca de su propio vector}"""
-    por_audio = vectores_por_audio(frec, espectros, cortes_hz)
-    promedios = {ave: core.energia_promedio(v) for ave, v in por_audio.items()}
+    por_audio = {ave: [core.energia(z, indices) for z in lista]
+                 for ave, lista in espectros.items()}
+    promedios = {ave: core.energia_promedio(vectores) for ave, vectores in por_audio.items()}
     aciertos = {}
     for ave, vectores in por_audio.items():
         bien = sum(1 for E in vectores
                    if min(promedios, key=lambda a: core.diferencia_euclidiana(E, promedios[a])) == ave)
         aciertos[ave] = bien / len(vectores)
-    return aciertos
 
-
-def guardar_modelo(fs, frec, espectros, cortes_hz):
-    """Calcula el vector promedio de energías de cada ave y lo guarda en JSON.
-    ValueError si los cortes dejan alguna subbanda vacía (no se guarda nada)."""
-    vectores = vectores_promedio(frec, espectros, cortes_hz)
     os.makedirs(os.path.dirname(RUTA_MODELO), exist_ok=True)
     with open(RUTA_MODELO, "w") as f:
         json.dump({"metodo": METODO, "fs": fs, "cortes_hz": sorted(cortes_hz),
-                   "vectores_promedio": vectores},
+                   "vectores_promedio": promedios},
                   f, indent=4, allow_nan=False)
-    return vectores
+    return promedios, aciertos
+

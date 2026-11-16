@@ -153,7 +153,7 @@ class PestanaEntrenamiento(ctk.CTkFrame):
 
     def guardar(self):
         try:
-            vectores = trainer.guardar_modelo(self.fs, self.frec, self.espectros, self.cortes)
+            vectores, aciertos = trainer.entrenar(self.fs, self.frec, self.espectros, self.cortes)
         except ValueError as e:
             messagebox.showerror("Cortes no válidos", f"{e}\n\nDeshaz el corte y marca otro.")
             return
@@ -166,7 +166,6 @@ class PestanaEntrenamiento(ctk.CTkFrame):
 
         ctk.CTkLabel(izq, anchor="w", text=f"Comparación de los vectores promedio (guardados en {trainer.RUTA_MODELO})",
                      font=ctk.CTkFont(weight="bold")).pack(fill="x")
-        aciertos = trainer.evaluar(self.frec, self.espectros, self.cortes)
         filas = [[f"E_{nombre(a)}"] + numeros(v) + [f"{100 * aciertos[a]:.0f} %"] for a, v in vectores.items()]
         tabla(izq, ["Vector"] + rangos(self.cortes, self.fs) + ["Acierto entrenamiento"], filas).pack(anchor="w")
 
