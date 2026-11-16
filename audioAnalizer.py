@@ -4,7 +4,7 @@ import subprocess
 import numpy as np
 from scipy.io import wavfile
 from mutagen.mp3 import MP3
-from filtro import FS, N, filtrar
+from filtro import FS, N, filtrar, normalizar
 
 CARPETA_ORIGEN = "audio"
 CARPETA_DESTINO = "audio_3s"
@@ -40,10 +40,6 @@ def mejor_ventana(x):
         if energia > mejor:
             mejor, inicio = energia, i
     return x[inicio:inicio + N]
-
-def normalizar_pico(x):
-    pico = max(np.max(np.abs(x)), 1e-9)
-    return x / pico * 0.9
 
 def analizar_duraciones():
     duraciones = []
@@ -107,7 +103,7 @@ def recortar_todo(corruptos):
             if len(x) < N or np.max(np.abs(x)) < 1e-4:
                 descartados += 1
                 continue
-            seg = filtrar(normalizar_pico(mejor_ventana(x)))
+            seg = filtrar(normalizar(mejor_ventana(x)))
             wavfile.write(os.path.join(destino, archivo.replace(".mp3", ".wav")), FS, (seg * 32767).astype(np.int16))
             ok += 1
         print(f"{ave}: {ok} recortados | {descartados} descartados")
