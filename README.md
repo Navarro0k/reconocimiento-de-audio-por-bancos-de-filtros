@@ -88,7 +88,8 @@ El espectro promedio $\|C(k)\|_m$ se usa solo para las gráficas.
 ├── audioAnalizer.py       # Analiza duraciones y recorta cada audio a 3 s
 ├── preprocesamiento.py    # Parámetros de audio y preprocesamiento (no hace parte de las fórmulas)
 ├── verificar_documento.py # Comprueba core.py con el ejemplo de 8 puntos del documento
-├── core.py                # ★ Núcleo: espectro, energía, vector promedio, distancia euclidiana
+├── core.py                # ★ Núcleo: espectro, energía, energía promedio, distancia euclidiana
+├── utilidades.py          # Apoyo: frecuencias, índices de corte y validación (no son fórmulas)
 ├── trainer.py             # Lógica de entrenamiento y guardado del modelo
 ├── recognizer.py          # Grabación en vivo y decisión
 ├── app.py                 # Interfaz gráfica (entrenamiento + reconocimiento)
