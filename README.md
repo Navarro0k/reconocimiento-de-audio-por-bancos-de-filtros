@@ -164,11 +164,10 @@ python graficas.py
 
 ## 📦 Formato del modelo
 
-`models/vectores_promedio.json` guarda el método de entrenamiento, la frecuencia de muestreo, los cortes en Hz y el vector promedio de energías de cada ave (los valores son un ejemplo):
+`models/vectores_promedio.json` guarda la frecuencia de muestreo, los cortes en Hz y el vector promedio de energías de cada ave (los valores son un ejemplo):
 
 ```json
 {
-    "metodo": "vector_completo_euclidiana",
     "fs": 22050,
     "cortes_hz": [3000, 4750],
     "vectores_promedio": {

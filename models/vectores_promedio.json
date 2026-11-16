@@ -1,5 +1,4 @@
 {
-    "metodo": "vector_completo_euclidiana",
     "fs": 22050,
     "cortes_hz": [
         3750.0,

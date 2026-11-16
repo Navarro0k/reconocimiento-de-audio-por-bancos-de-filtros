@@ -6,15 +6,15 @@ import time
 import core
 import utilidades
 from filtro import FS, N
-from trainer import RUTA_MODELO, METODO
+from trainer import RUTA_MODELO
 
 
 def cargar_modelo():
     """(cortes_hz, {ave: vector promedio de energías E_ave})"""
     with open(RUTA_MODELO) as f:
         m = json.load(f)
-    if m.get("metodo") != METODO or "vectores_promedio" not in m:
-        raise ValueError("El modelo guardado se entrenó con una versión anterior del método. "
+    if "vectores_promedio" not in m:
+        raise ValueError("El modelo guardado no es válido o está incompleto. "
                          "Vuelve a entrenar en la pestaña Entrenamiento.")
     for ave, vector in m["vectores_promedio"].items():
         if any(not math.isfinite(e) for e in vector):

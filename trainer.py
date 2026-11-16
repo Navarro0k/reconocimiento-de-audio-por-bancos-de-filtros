@@ -11,7 +11,6 @@ CARPETA = "audio_3s"
 AVES = ["Carpeta_Copeton", "Carpeta_Mirla"]
 COLORES = {"Carpeta_Copeton": "tab:blue", "Carpeta_Mirla": "tab:green"}
 RUTA_MODELO = os.path.join("models", "vectores_promedio.json")
-METODO = "vector_completo_euclidiana"
 
 
 def cargar_espectros_de_carpeta(ruta):
@@ -85,8 +84,7 @@ def entrenar(frecuencia_muestreo, frecuencias, espectros_por_ave, cortes_hz):
 
     os.makedirs(os.path.dirname(RUTA_MODELO), exist_ok=True)
     with open(RUTA_MODELO, "w") as archivo:
-        json.dump({"metodo": METODO,
-                   "fs": frecuencia_muestreo,
+        json.dump({"fs": frecuencia_muestreo,
                    "cortes_hz": sorted(cortes_hz),
                    "vectores_promedio": vectores_promedio},
                   archivo, indent=4, allow_nan=False)
