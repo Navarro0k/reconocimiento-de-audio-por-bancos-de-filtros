@@ -70,7 +70,7 @@ $$E_{C} = \frac{1}{M}\sum_{j=1}^{M}E^{(j)}$$
 
 $$d_C = \|E_X - E_C\| = \sqrt{\sum_{i=1}^{3}\left(E_{Xi}-E_{Ci}\right)^2} \qquad\qquad \text{tipo}_X = \arg\min_C\, d_C$$
 
-**Partición:** el vector FFT completo ($k = 0,\dots,N-1$) se divide en 3 subbandas; la tercera incluye la mitad reflejada. Los cortes se escogen para que las energías de las subbandas equivalentes de cada ave sean muy diferentes. «Sugerir cortes» prueba todas las combinaciones sobre una rejilla de 250 Hz (entre 2 y 9 kHz) y marca la que más audios de entrenamiento deja junto al vector de su ave. Con `CRITERIO_PARTICION = "distancia"` en `trainer.py` escoge en cambio la que hace máxima la distancia $\|E_A - E_B\|$ entre vectores promedio, que es el criterio literal del documento pero reconoce peor con estos audios.
+**Partición:** el vector FFT completo ($k = 0,\dots,N-1$) se divide en 3 subbandas; la tercera incluye la mitad reflejada. Los cortes se escogen para que las energías de las subbandas equivalentes de cada ave sean muy diferentes. En la aplicación se marcan manualmente con clic izquierdo sobre la gráfica.
 
 **Verificación:** `python verificar_documento.py` calcula el ejemplo de 8 puntos del documento con las funciones de `core.py` y compara cada resultado con el del documento.
 
@@ -149,7 +149,7 @@ python app.py
 
 | Pestaña | Qué hacer |
 |---|---|
-| **Entrenamiento** | `Cargar espectros` → clic izquierdo en la gráfica para marcar **2 cortes** (o `Sugerir cortes`) (clic derecho deshace) → `Entrenar y guardar` |
+| **Entrenamiento** | `Cargar espectros` → clic izquierdo en la gráfica para marcar **2 cortes** (clic derecho deshace) → `Entrenar y guardar` |
 | **Reconocimiento** | `Grabar 3 s y reconocer` → acerca el micrófono al canto y mira el resultado |
 
 > 💡 Si usas la lupa o el modo mover de la barra de zoom, los clics no agregan cortes: desactívala para marcarlos.
