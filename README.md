@@ -92,9 +92,9 @@ El espectro promedio $\|C(k)\|_m$ se usa solo para las gráficas.
 ├── utilidades.py          # Apoyo: frecuencias, índices de corte y validación (no son fórmulas)
 ├── trainer.py             # Lógica de entrenamiento y guardado del modelo
 ├── recognizer.py          # Grabación en vivo y decisión
-├── app.py                 # Punto de entrada
-├── appvista.py            # Interfaz gráfica (entrenamiento + reconocimiento)
-├── graficas.py            # Gráficas de espectros para el informe
+├── app.py                 # Punto de entrada y controladores
+├── appvista.py            # Interfaz gráfica (solo vista)
+├── graficas.py            # Gráficas de la app y del informe
 ├── requirements.txt
 ├── audio/                 # MP3 originales      (se genera)
 ├── audio_3s/              # WAV recortados a 3 s (se genera)

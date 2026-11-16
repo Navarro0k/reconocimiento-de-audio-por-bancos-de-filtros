@@ -1,25 +1,12 @@
-"""Vista de la aplicación (CustomTkinter): entrenamiento y reconocimiento en vivo."""
+"""Vista de la aplicación: widgets y presentación de las pestañas."""
 import os
-from tkinter import messagebox
 import customtkinter as ctk
 from PIL import Image
-import matplotlib
-matplotlib.use("TkAgg")
-from matplotlib.figure import Figure
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+from graficas import crear_grafica, dibujar_corte, dibujar_espectros_promedio, dibujar_reconocimiento
 
-import core
-import trainer
-import recognizer
-import utilidades
-from filtro import FS, DURACION, normalizar, filtrar
-
-N_CORTES = 2   # -> 3 subbandas, como en el documento
-SEPARACION_MIN_HZ = 100   # distancia mínima entre cortes (y a 0 Hz / fs/2) para no dejar subbandas vacías
 VERDE = "#c8f0cf"
 CARPETA_IMAGENES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "imagenes")
 TAM_IMAGEN = 140   # px del ave reconocida
-COLORES = {"Carpeta_Copeton": "tab:blue", "Carpeta_Mirla": "tab:green"}
 
 
 def nombre(ave):
@@ -66,33 +53,27 @@ def tabla(padre, encabezados, filas, resaltar=None):
     return marco
 
 
-def crear_grafica(padre):
-    """Figura de matplotlib con su barra de herramientas (zoom, pan, home)."""
-    fig = Figure(figsize=(7, 4.2), layout="constrained")
-    ax = fig.add_subplot(111)
-    canvas = FigureCanvasTkAgg(fig, padre)
-    barra = NavigationToolbar2Tk(canvas, padre, pack_toolbar=False)
-    barra.update()
-    barra.pack(side="bottom", fill="x")
-    canvas.get_tk_widget().pack(side="top", fill="both", expand=True)
-    return ax, canvas, barra
+class VistaEntrenamiento(ctk.CTkFrame):
+    """Pestaña de entrenamiento. Solo construye y actualiza la interfaz."""
 
-
-class PestanaEntrenamiento(ctk.CTkFrame):
-    def __init__(self, master):
+    def __init__(self, master, n_cortes, al_cargar, al_entrenar, al_marcar_corte):
         super().__init__(master, fg_color="transparent")
-        self.promedios, self.espectros, self.cortes, self.lineas = {}, {}, [], []
+        self.n_cortes = n_cortes
+        self.al_marcar_corte = al_marcar_corte
+        self.cortes = []
+        self.lineas = []
+        self.hay_espectros = False
 
         barra = ctk.CTkFrame(self, fg_color="transparent")
         barra.pack(fill="x", pady=(0, 6))
-        ctk.CTkButton(barra, text="Cargar espectros", command=self.cargar).pack(side="left")
-        ctk.CTkButton(barra, text="Deshacer corte", fg_color="gray50", command=self.deshacer
+        ctk.CTkButton(barra, text="Cargar espectros", command=al_cargar).pack(side="left")
+        ctk.CTkButton(barra, text="Deshacer corte", fg_color="gray50", command=self.quitar_corte
                       ).pack(side="left", padx=8)
         self.btn_guardar = ctk.CTkButton(barra, text="Entrenar y guardar", state="disabled",
-                                         command=self.guardar)
+                                         command=al_entrenar)
         self.btn_guardar.pack(side="left")
         self.info = ctk.CTkLabel(self, anchor="w", text=(
-            f"1) Carga los espectros  2) Clic izquierdo en la gráfica para marcar {N_CORTES} cortes "
+            f"1) Carga los espectros  2) Clic izquierdo en la gráfica para marcar {n_cortes} cortes "
             "(clic derecho deshace)  3) Entrena y guarda. Usa la lupa de la barra para hacer zoom."))
         self.info.pack(fill="x")
 
@@ -103,83 +84,73 @@ class PestanaEntrenamiento(ctk.CTkFrame):
         self.resultado = ctk.CTkFrame(self, fg_color="transparent")
         self.resultado.pack(fill="x", pady=(6, 0))
 
-    def cargar(self):
-        try:
-            self.fs, self.frec, self.espectros = trainer.cargar_espectros()
-        except Exception as e:
-            messagebox.showerror("Error", str(e))
-            return
-        self.promedios = trainer.calcular_espectros_promedio(self.espectros)
-        self.cortes, self.lineas = [], []
-        self.ax.clear()
-        for ave, z in self.promedios.items():
-            self.ax.plot(self.frec, z, color=COLORES[ave], lw=1, label=nombre(ave))
-        tope = max(z[self.frec > 100].max() for z in self.promedios.values())   # z ya es la mitad útil
-        self.ax.set(xlabel="Frecuencia [Hz]", ylabel="||C(k)||_m", title="Espectros promedio",
-                    xlim=(0, self.frec[-1]), ylim=(0, 4 * tope))
-        self.ax.legend(loc="upper right")
-        self.canvas.draw_idle()
-        self.toolbar.update()          # "home" vuelve a esta vista
-        self.actualizar()
-
-    def clic(self, ev):
+    def clic(self, evento):
         modo = getattr(self.toolbar.mode, "value", self.toolbar.mode)
-        if modo or ev.inaxes is not self.ax or not self.promedios:   # zoom/pan activo
+        if modo or evento.inaxes is not self.ax or not self.hay_espectros:
             return
-        if ev.button == 1 and len(self.cortes) < N_CORTES:
-            x = float(ev.xdata)
-            limites = [0.0, self.fs / 2] + self.cortes
-            if min(abs(x - c) for c in limites) < SEPARACION_MIN_HZ:
-                self.info.configure(text=f"Corte en {x:.0f} Hz ignorado: debe estar a más de "
-                                         f"{SEPARACION_MIN_HZ} Hz de otro corte y de los extremos.")
-                return
-            self.cortes.append(x)
-            self.lineas.append(self.ax.axvline(x, color="k", ls="--", lw=1))
-            self.canvas.draw_idle()
-        elif ev.button == 3:
-            self.deshacer()
-        self.actualizar()
+        if evento.button == 1 and len(self.cortes) < self.n_cortes:
+            self.al_marcar_corte(float(evento.xdata))
+        elif evento.button == 3:
+            self.quitar_corte()
 
-    def deshacer(self):
-        if self.cortes:
-            self.cortes.pop()
-            self.lineas.pop().remove()
-            self.canvas.draw_idle()
-            self.actualizar()
+    def mostrar_espectros_promedio(self, frecuencias, promedios):
+        self.hay_espectros = True
+        self.cortes, self.lineas = [], []
+        dibujar_espectros_promedio(self.ax, frecuencias, promedios)
+        self.canvas.draw_idle()
+        self.toolbar.update()
+        self.actualizar_estado()
 
-    def actualizar(self):
-        self.btn_guardar.configure(state="normal" if len(self.cortes) == N_CORTES else "disabled")
+    def agregar_corte(self, frecuencia):
+        self.cortes.append(frecuencia)
+        self.lineas.append(dibujar_corte(self.ax, frecuencia))
+        self.canvas.draw_idle()
+        self.actualizar_estado()
+
+    def quitar_corte(self):
+        if not self.cortes:
+            return
+        self.cortes.pop()
+        self.lineas.pop().remove()
+        self.canvas.draw_idle()
+        self.actualizar_estado()
+
+    def avisar_corte_invalido(self, frecuencia, separacion_hz):
+        self.info.configure(text=f"Corte en {frecuencia:.0f} Hz ignorado: debe estar a más de "
+                                 f"{separacion_hz} Hz de otro corte y de los extremos.")
+
+    def actualizar_estado(self):
+        self.btn_guardar.configure(state="normal" if len(self.cortes) == self.n_cortes else "disabled")
         hz = ", ".join(f"{c:.0f} Hz" for c in sorted(self.cortes))
-        self.info.configure(text=f"Cortes {len(self.cortes)}/{N_CORTES}: {hz}")
+        self.info.configure(text=f"Cortes {len(self.cortes)}/{self.n_cortes}: {hz}")
 
-    def guardar(self):
-        try:
-            vectores = trainer.entrenar(self.fs, self.frec, self.espectros, self.cortes)
-        except ValueError as e:
-            messagebox.showerror("Cortes no válidos", f"{e}\n\nDeshaz el corte y marca otro.")
-            return
+    def mostrar_vectores(self, cortes, frecuencia_muestreo, vectores, ruta_modelo):
         for w in self.resultado.winfo_children():
             w.destroy()
         izq = ctk.CTkFrame(self.resultado, fg_color="transparent")
         izq.pack(side="left", anchor="n")
-
-        ctk.CTkLabel(izq, anchor="w", text=f"Vectores promedio guardados en {trainer.RUTA_MODELO}",
+        ctk.CTkLabel(izq, anchor="w", text=f"Vectores promedio guardados en {ruta_modelo}",
                      font=ctk.CTkFont(weight="bold")).pack(fill="x")
         filas = [[f"E_{nombre(a)}"] + numeros(v) for a, v in vectores.items()]
-        tabla(izq, ["Vector"] + rangos(self.cortes, self.fs), filas).pack(anchor="w")
+        tabla(izq, ["Vector"] + rangos(cortes, frecuencia_muestreo), filas).pack(anchor="w")
 
 
-class PestanaReconocimiento(ctk.CTkFrame):
-    def __init__(self, master):
+class VistaReconocimiento(ctk.CTkFrame):
+    """Pestaña de reconocimiento. Solo construye y actualiza la interfaz."""
+
+    def __init__(self, master, duracion, frecuencia_muestreo, al_grabar, al_terminar):
         super().__init__(master, fg_color="transparent")
-        self.cache = {}     # ave -> (frec, ||C(k)||_m)
-        self.imagenes = {}  # ave -> CTkImage
+        self.duracion = duracion
+        self.frecuencia_muestreo = frecuencia_muestreo
+        self.al_terminar = al_terminar
+        self.imagenes = {}
         self.columnconfigure(1, weight=1)
         self.rowconfigure(1, weight=1)
 
         barra = ctk.CTkFrame(self, fg_color="transparent")
         barra.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 6))
-        self.btn = ctk.CTkButton(barra, text=f"Grabar {DURACION:.0f} s y reconocer", command=self.grabar)
+        self.btn = ctk.CTkButton(barra, text=f"Grabar {duracion:.0f} s y reconocer",
+                                 command=al_grabar)
         self.btn.pack(side="left")
         self.progreso = ctk.CTkProgressBar(barra, width=200)
         self.progreso.set(0)
@@ -206,51 +177,37 @@ class PestanaReconocimiento(ctk.CTkFrame):
         der.grid(row=1, column=1, sticky="nsew")
         self.ax, self.canvas, self.toolbar = crear_grafica(der)
 
-    def grabar(self):
-        if not os.path.exists(trainer.RUTA_MODELO):
-            messagebox.showerror("Error", "No hay modelo. Entrena primero en la otra pestaña.")
-            return
-        try:
-            self.buffer = recognizer.iniciar_grabacion()
-        except Exception as e:
-            messagebox.showerror("Error de micrófono", f"{e}\n\nInstala: pip install sounddevice")
-            return
+    def iniciar_grabacion(self):
         self.btn.configure(state="disabled")
         self.avance(0)
 
     def avance(self, tick):
-        total = int(DURACION * 10)
+        total = int(self.duracion * 10)
         if tick < total:
             self.progreso.set(tick / total)
-            self.estado.configure(text=f"Grabando... {DURACION - tick / 10:.1f} s")
+            self.estado.configure(text=f"Grabando... {self.duracion - tick / 10:.1f} s")
             self.after(100, self.avance, tick + 1)
         else:
-            self.after(300, self.terminar)
+            self.after(300, self.al_terminar)
 
-    def terminar(self):
-        x = recognizer.terminar_grabacion(self.buffer)
-        try:
-            recognizer.guardar_grabacion(x)
-        except OSError:
-            pass   # no poder guardar la copia no debe impedir el reconocimiento
+    def finalizar_grabacion(self):
         self.btn.configure(state="normal")
         self.progreso.set(1)
-        if abs(x).max() < 1e-3:
-            self.estado.configure(text="No se detectó sonido")
-            return
+
+    def mostrar_sin_sonido(self):
+        self.estado.configure(text="No se detectó sonido")
+
+    def mostrar_resultado(self, senal, frecuencias_senal, ganador, distancias, energia,
+                          cortes, promedios, frecuencias_promedio, promedio):
         self.estado.configure(text="Listo")
-        x = filtrar(normalizar(x))
-        try:
-            cortes, E_promedio = recognizer.cargar_modelo()
-        except ValueError as e:
-            messagebox.showerror("Modelo no válido", str(e))
-            return
-        ganador, d, E_x = recognizer.reconocer(x, cortes, E_promedio)
-        self.mostrar_tablas(cortes, E_promedio, d, E_x)
+        self.mostrar_tablas(cortes, promedios, distancias, energia)
         self.titulo.configure(text=nombre(ganador))
         self.mostrar_imagen(ganador)
-        self.subtitulo.configure(text=f"Menor distancia euclidiana: {d[ganador]:,.2f}")
-        self.graficar(x, ganador, cortes)
+        self.subtitulo.configure(text=f"Menor distancia euclidiana: {distancias[ganador]:,.2f}")
+        dibujar_reconocimiento(self.ax, senal, frecuencias_senal, frecuencias_promedio,
+                               promedio, ganador, cortes)
+        self.canvas.draw_idle()
+        self.toolbar.update()
 
     def mostrar_imagen(self, ave):
         """Imagen del ave reconocida al lado del nombre (nada si no hay imagen)."""
@@ -264,38 +221,19 @@ class PestanaReconocimiento(ctk.CTkFrame):
         else:
             self.foto.pack_forget()
 
-    def mostrar_tablas(self, cortes, E_promedio, d, E_x):
-        aves = sorted(d, key=d.get)   # de menor a mayor distancia: la primera es la reconocida
+    def mostrar_tablas(self, cortes, promedios, distancias, energia):
+        aves = sorted(distancias, key=distancias.get)   # de menor a mayor distancia
         for w in self.tablas.winfo_children():
             w.destroy()
-        enc = rangos(cortes, FS)
+        enc = rangos(cortes, self.frecuencia_muestreo)
         ctk.CTkLabel(self.tablas, text="Vectores de energía", anchor="w",
                      font=ctk.CTkFont(weight="bold")).pack(fill="x")
-        filas = [["E_x (grabación)"] + numeros(E_x)]
-        filas += [[f"E_{nombre(a)}"] + numeros(E_promedio[a]) for a in aves]
+        filas = [["E_x (grabación)"] + numeros(energia)]
+        filas += [[f"E_{nombre(a)}"] + numeros(promedios[a]) for a in aves]
         tabla(self.tablas, ["Vectores"] + enc, filas).pack(anchor="w", pady=(0, 12))
 
         ctk.CTkLabel(self.tablas, text="Términos (E_xi − E_ave,i)² y distancia d = ||E_x − E_ave|| = √Σ", anchor="w",
                      font=ctk.CTkFont(weight="bold")).pack(fill="x")
-        filas = [[nombre(a)] + numeros_cortos([(ex - ea) ** 2 for ex, ea in zip(E_x, E_promedio[a])])
-                 + [f"{d[a]:,.2f}"] for a in aves]
+        filas = [[nombre(a)] + numeros_cortos([(ex - ea) ** 2 for ex, ea in zip(energia, promedios[a])])
+                 + [f"{distancias[a]:,.2f}"] for a in aves]
         tabla(self.tablas, ["Ave"] + enc + ["d"], filas, resaltar=0).pack(anchor="w")
-
-    def graficar(self, x, ganador, cortes):
-        if ganador not in self.cache:
-            _, frec_a, z_a = trainer.cargar_espectro_promedio(ganador)
-            self.cache[ganador] = (frec_a, z_a)
-        frec_a, z_a = self.cache[ganador]
-        frec = utilidades.frecuencias(len(x), FS)
-        self.ax.clear()
-        self.ax.plot(frec, core.espectro(x)[:len(frec)], color="tab:gray", lw=0.8,
-                     label="Grabación X")
-        self.ax.plot(frec_a, z_a, color=COLORES[ganador], lw=1.2,
-                     label=f"Promedio {nombre(ganador)} (mínima distancia)")
-        for c in cortes:
-            self.ax.axvline(c, color="k", ls="--", lw=0.8)
-        self.ax.set(xlabel="Frecuencia [Hz]", ylabel="||X(k)||", xlim=(0, FS / 2),
-                    title="Espectro de la grabación vs. ave reconocida")
-        self.ax.legend(loc="upper right")
-        self.canvas.draw_idle()
-        self.toolbar.update()
