@@ -36,7 +36,7 @@ def terminar_grabacion(buffer):
     return buffer[:, 0]
 
 
-CARPETA_GRABACIONES = "grabaciones"   # copia de cada grabación del micrófono (no se sube al repo)
+CARPETA_GRABACIONES = "grabaciones"
 
 
 def guardar_grabacion(x):
@@ -54,10 +54,10 @@ def reconocer(x, cortes_hz, E_promedio):
     Devuelve (tipo, d, E_x): el ave reconocida, {ave: distancia} y el vector de energías de x.
     """
     N = len(x)
-    X = core.espectro(x)                                                   # 1. X(k) = |FFT(x)|
+    X = core.espectro(x)
     k_cortes = utilidades.indices_de_corte(utilidades.frecuencias(N, FS), cortes_hz)
-    E_x = core.energia(X, k_cortes)                                        # 2 y 3. E_x = (E_1, E_2, E_3)
-    d = {ave: core.diferencia_euclidiana(E_x, E_ave)                       # 5. d_ave = ||E_x - E_ave||
+    E_x = core.energia(X, k_cortes)
+    d = {ave: core.diferencia_euclidiana(E_x, E_ave)
          for ave, E_ave in E_promedio.items()}
-    tipo = min(d, key=d.get)                                               # 6. menor distancia
+    tipo = min(d, key=d.get)
     return tipo, d, E_x

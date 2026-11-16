@@ -13,8 +13,8 @@ import utilidades
 from filtro import FS, DURACION, filtrar, normalizar
 from appvista import VistaEntrenamiento, VistaReconocimiento
 
-N_CORTES = 2   # -> 3 subbandas, como en el documento
-SEPARACION_MIN_HZ = 100   # distancia mínima entre cortes (y a 0 Hz / fs/2)
+N_CORTES = 2
+SEPARACION_MIN_HZ = 100
 
 
 class ControlEntrenamiento:

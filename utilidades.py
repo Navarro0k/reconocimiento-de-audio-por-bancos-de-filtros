@@ -25,7 +25,7 @@ def validar_cortes(frec, cortes_hz):
     E = 0/0 = nan.
     """
     indices = indices_de_corte(frec, cortes_hz)
-    limites = np.concatenate(([0], indices, [len(frec)]))   # los cortes van en la mitad útil (0 a fs/2)
+    limites = np.concatenate(([0], indices, [len(frec)]))
     vacias = [i + 1 for i in range(len(limites) - 1) if limites[i + 1] <= limites[i]]
     if vacias:
         raise ValueError(f"Las subbandas {', '.join(f'S{i}' for i in vacias)} quedan vacías: "

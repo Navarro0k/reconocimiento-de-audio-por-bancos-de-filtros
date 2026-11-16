@@ -11,9 +11,8 @@ import core
 A = [(2, 1, 2, 1, 2, 1, 1, 1), (2, 2, 1, 1, 1, 2, 1, 1)]
 B = [(-1, 1, -1, 2, 0, 1, -1, 2), (1, -2, 2, -1, 1, -2, 1, -1)]
 x = (2, -1, 1, -1, 1, -1, 1, -1)
-K_CORTES = [3, 5]                      # subbandas de tamaños 3, 2, 3: k = 0..2, 3..4, 5..7
+K_CORTES = [3, 5]
 
-# Valores del documento
 E_A_DOC, E_B_DOC, E_X_DOC = (125 / 3, 3, 5 / 3), (11 / 3, 51, 7 / 3), (1, 41, 1)
 D_AB_DOC, D_A_DOC, D_B_DOC = 61.22, 55.66, 10.43
 
@@ -31,12 +30,12 @@ def comprobar(nombre, obtenido, esperado, tolerancia=0.005):
 
 
 def main():
-    E_promedio = {"A": core.energia_promedio([energias_de(s) for s in A]),      # paso 4
+    E_promedio = {"A": core.energia_promedio([energias_de(s) for s in A]),
                   "B": core.energia_promedio([energias_de(s) for s in B])}
     E_x = energias_de(x)
-    d = {clase: core.diferencia_euclidiana(E_x, E_clase)                           # paso 5
+    d = {clase: core.diferencia_euclidiana(E_x, E_clase)
          for clase, E_clase in E_promedio.items()}
-    tipo = min(d, key=d.get)                                                       # paso 6
+    tipo = min(d, key=d.get)
 
     resultados = [
         comprobar("E_A", E_promedio["A"], E_A_DOC),

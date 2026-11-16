@@ -27,7 +27,6 @@ for nombre_carpeta in carpetas_aves:
             ruta_archivo = os.path.join(ruta_carpeta, archivo)
             try:
                 audio = MP3(ruta_archivo)
-                # Fuerza la lectura de los metadatos para detectar el archivo corrupto.
                 duracion = audio.info.length 
                 duraciones.append(duracion)
                 
@@ -54,7 +53,7 @@ if archivos_corruptos:
     print(f"\nSe detectaron {len(archivos_corruptos)} archivos corruptos que interrumpirán el cálculo de la FFT.")
     try:
         respuesta = input("¿Deseas eliminar estos archivos permanentemente? (s/n): ").strip().lower()
-    except EOFError:  # ejecución sin teclado (p. ej. en un script automático)
+    except EOFError:
         respuesta = "n"
     
     if respuesta == 's' or respuesta == 'si':
@@ -134,12 +133,12 @@ for nombre_carpeta in carpetas_aves:
             descartados += 1
             continue
         pico = np.max(np.abs(x)) if len(x) else 0.0
-        if len(x) < N or pico < 1e-4:   # muy corto o silencio total
+        if len(x) < N or pico < 1e-4:
             descartados += 1
             continue
         seg = mejor_ventana(x)
         seg = seg / max(np.max(np.abs(seg)), 1e-9) * 0.9
-        seg = filtrar(seg)   # media móvil: audio_3s queda con los audios ya filtrados
+        seg = filtrar(seg)
         wavfile.write(os.path.join(destino, archivo.replace(".mp3", ".wav")),
                       FS, (seg * 32767).astype(np.int16))
         ok += 1

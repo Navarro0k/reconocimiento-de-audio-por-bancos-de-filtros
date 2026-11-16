@@ -6,7 +6,7 @@ from graficas import crear_grafica, dibujar_corte, dibujar_espectros_promedio, d
 
 VERDE = "#c8f0cf"
 CARPETA_IMAGENES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "imagenes")
-TAM_IMAGEN = 140   # px del ave reconocida
+TAM_IMAGEN = 140
 
 
 def nombre(ave):
@@ -222,7 +222,7 @@ class VistaReconocimiento(ctk.CTkFrame):
             self.foto.pack_forget()
 
     def mostrar_tablas(self, cortes, promedios, distancias, energia):
-        aves = sorted(distancias, key=distancias.get)   # de menor a mayor distancia
+        aves = sorted(distancias, key=distancias.get)
         for w in self.tablas.winfo_children():
             w.destroy()
         enc = rangos(cortes, self.frecuencia_muestreo)
