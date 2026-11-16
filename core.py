@@ -11,15 +11,8 @@ import numpy as np
 
 
 def espectro(x):
-    """
-    X(k) = |FFT(x)| para k = 0, ..., N-1.
-
-    Como x es real, |X(N-k)| = |X(k)|: se calcula la mitad útil con rfft y
-    se refleja para completar los N puntos.
-    """
-    mitad = np.abs(np.fft.rfft(x))
-    reflejo = mitad[-2:0:-1] if len(x) % 2 == 0 else mitad[:0:-1]
-    return np.concatenate([mitad, reflejo])
+    """X(k) = |FFT(x)| para k = 0, ..., N-1."""
+    return np.abs(np.fft.fft(x))
 
 
 def espectro_promedio(espectros):
