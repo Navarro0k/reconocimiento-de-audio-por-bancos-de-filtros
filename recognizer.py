@@ -1,4 +1,3 @@
-"""Fase de reconocimiento (lógica). La interfaz está en appvista.py."""
 import os
 import json
 import math
@@ -10,7 +9,6 @@ from trainer import RUTA_MODELO
 
 
 def cargar_modelo():
-    """(cortes_hz, {ave: vector promedio de energías E_ave})"""
     with open(RUTA_MODELO) as f:
         m = json.load(f)
     if "vectores_promedio" not in m:
@@ -24,13 +22,11 @@ def cargar_modelo():
 
 
 def iniciar_grabacion():
-    """Empieza a grabar DURACION segundos del micrófono (no bloquea)."""
     import sounddevice as sd
     return sd.rec(N, samplerate=FS, channels=1, dtype="float32")
 
 
 def terminar_grabacion(buffer):
-    """Espera a que termine la grabación y devuelve la señal x."""
     import sounddevice as sd
     sd.wait()
     return buffer[:, 0]
@@ -40,7 +36,6 @@ CARPETA_GRABACIONES = "grabaciones"
 
 
 def guardar_grabacion(x):
-    """Guarda la grabación cruda del micrófono como WAV, para poder revisar después qué se oyó."""
     from scipy.io import wavfile
     os.makedirs(CARPETA_GRABACIONES, exist_ok=True)
     ruta = os.path.join(CARPETA_GRABACIONES, time.strftime("grabacion_%Y%m%d_%H%M%S.wav"))
@@ -49,10 +44,6 @@ def guardar_grabacion(x):
 
 
 def reconocer(x, cortes_hz, E_promedio):
-    """
-    Reconoce la señal x (ya acondicionada) siguiendo los pasos del documento.
-    Devuelve (tipo, d, E_x): el ave reconocida, {ave: distancia} y el vector de energías de x.
-    """
     N = len(x)
     X = core.espectro(x)
     k_cortes = utilidades.indices_de_corte(utilidades.frecuencias(N, FS), cortes_hz)

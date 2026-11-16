@@ -1,4 +1,3 @@
-"""Vista de la aplicación: widgets y presentación de las pestañas."""
 import os
 import customtkinter as ctk
 from PIL import Image
@@ -14,14 +13,11 @@ def nombre(ave):
 
 
 def rangos(cortes_hz, fmax):
-    """Encabezados de subbanda: 'S1 (0.0–3.5 kHz)', ... La última llega hasta fs porque la
-    partición se hace sobre el vector FFT completo (incluye la mitad reflejada)."""
     lim = [0] + sorted(cortes_hz) + [fmax]
     return [f"S{i + 1} ({lim[i] / 1000:.1f}–{lim[i + 1] / 1000:.1f} kHz)" for i in range(len(lim) - 1)]
 
 
 def imagen_ave(ave):
-    """Ruta de la imagen del ave (imagenes/copeton.png, ...) o None si no existe."""
     ruta = os.path.join(CARPETA_IMAGENES, f"{nombre(ave).lower()}.png")
     return ruta if os.path.exists(ruta) else None
 
@@ -31,12 +27,10 @@ def numeros(v):
 
 
 def numeros_cortos(v):
-    """Como numeros(), pero en notación científica los valores muy grandes."""
     return [f"{e:.3e}" if abs(e) >= 1e7 else f"{e:,.2f}" for e in v]
 
 
 def tabla(padre, encabezados, filas, resaltar=None):
-    """Tabla con rejilla; la fila `resaltar` se pinta de verde."""
     marco = ctk.CTkFrame(padre, fg_color="gray40", corner_radius=0)
     for j, h in enumerate(encabezados):
         ctk.CTkLabel(marco, text=h, font=ctk.CTkFont(weight="bold", size=12), fg_color="#e8e8e8",
@@ -54,7 +48,6 @@ def tabla(padre, encabezados, filas, resaltar=None):
 
 
 class VistaEntrenamiento(ctk.CTkFrame):
-    """Pestaña de entrenamiento. Solo construye y actualiza la interfaz."""
 
     def __init__(self, master, n_cortes, al_cargar, al_entrenar, al_marcar_corte):
         super().__init__(master, fg_color="transparent")
@@ -136,7 +129,6 @@ class VistaEntrenamiento(ctk.CTkFrame):
 
 
 class VistaReconocimiento(ctk.CTkFrame):
-    """Pestaña de reconocimiento. Solo construye y actualiza la interfaz."""
 
     def __init__(self, master, duracion, frecuencia_muestreo, al_grabar, al_terminar):
         super().__init__(master, fg_color="transparent")
@@ -210,7 +202,6 @@ class VistaReconocimiento(ctk.CTkFrame):
         self.toolbar.update()
 
     def mostrar_imagen(self, ave):
-        """Imagen del ave reconocida al lado del nombre (nada si no hay imagen)."""
         if ave not in self.imagenes:
             ruta = imagen_ave(ave)
             self.imagenes[ave] = ctk.CTkImage(Image.open(ruta), size=(TAM_IMAGEN, TAM_IMAGEN)) if ruta else None

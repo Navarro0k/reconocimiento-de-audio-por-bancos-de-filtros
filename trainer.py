@@ -1,4 +1,3 @@
-"""Lógica de entrenamiento: carga los audios, calcula sus espectros y guarda el modelo."""
 import os
 import json
 import numpy as np
@@ -13,7 +12,6 @@ RUTA_MODELO = os.path.join("models", "vectores_promedio.json")
 
 
 def cargar_espectros_de_carpeta(ruta):
-    """Devuelve la frecuencia de muestreo y el espectro de cada archivo WAV de la carpeta."""
     frecuencia_muestreo = None
     espectros = []
     for archivo in sorted(os.listdir(ruta)):
@@ -26,7 +24,6 @@ def cargar_espectros_de_carpeta(ruta):
 
 
 def cargar_espectro_promedio(ave):
-    """Devuelve la frecuencia de muestreo, las frecuencias y el espectro promedio de un ave."""
     frecuencia_muestreo, espectros = cargar_espectros_de_carpeta(os.path.join(CARPETA, ave))
     if not espectros:
         raise FileNotFoundError(f"No hay audios en '{CARPETA}/{ave}'.")
@@ -36,7 +33,6 @@ def cargar_espectro_promedio(ave):
 
 
 def cargar_espectros():
-    """Carga las aves disponibles y devuelve su frecuencia de muestreo, frecuencias y espectros."""
     frecuencia_muestreo = None
     frecuencias = None
     espectros_por_ave = {}
@@ -56,7 +52,6 @@ def cargar_espectros():
 
 
 def calcular_espectros_promedio(espectros_por_ave):
-    """Calcula el espectro promedio de cada ave. Se usa solo para las gráficas."""
     promedios = {}
     for ave, espectros in espectros_por_ave.items():
         promedios[ave] = core.espectro_promedio(espectros)[:len(espectros[0]) // 2 + 1]
@@ -64,13 +59,6 @@ def calcular_espectros_promedio(espectros_por_ave):
 
 
 def entrenar(frecuencia_muestreo, frecuencias, espectros_por_ave, cortes_hz):
-    """Entrena con los espectros cargados y guarda el modelo.
-
-    Valida los cortes, calcula el vector de energías de cada audio y el promedio de cada ave,
-    y escribe los vectores promedio en el JSON.
-    Devuelve los vectores promedio.
-    Lanza ValueError si algún corte deja una subbanda vacía; en ese caso no guarda nada.
-    """
     indices = utilidades.validar_cortes(frecuencias, cortes_hz)
 
     energias_por_audio = {}

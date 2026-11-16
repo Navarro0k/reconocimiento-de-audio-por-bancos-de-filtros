@@ -1,4 +1,3 @@
-"""Gráficas de espectros para la aplicación y para el informe."""
 import os
 import json
 import matplotlib.pyplot as plt
@@ -13,7 +12,6 @@ COLORES = {"Carpeta_Copeton": "tab:blue", "Carpeta_Mirla": "tab:green"}
 
 
 def crear_grafica(padre):
-    """Figura de matplotlib con su barra de herramientas (zoom, pan, home)."""
     fig = Figure(figsize=(7, 4.2), layout="constrained")
     ax = fig.add_subplot(111)
     canvas = FigureCanvasTkAgg(fig, padre)
@@ -25,7 +23,6 @@ def crear_grafica(padre):
 
 
 def dibujar_espectros_promedio(ax, frec, promedios):
-    """Dibuja el espectro promedio de cada ave en la pestaña de entrenamiento."""
     ax.clear()
     for ave, espectro in promedios.items():
         ax.plot(frec, espectro, color=COLORES[ave], lw=1, label=ave.replace("Carpeta_", ""))
@@ -36,7 +33,6 @@ def dibujar_espectros_promedio(ax, frec, promedios):
 
 
 def dibujar_reconocimiento(ax, senal, frec, frec_promedio, promedio, ganador, cortes):
-    """Dibuja la grabación y el espectro promedio del ave reconocida."""
     ax.clear()
     ax.plot(frec, core.espectro(senal)[:len(frec)], color="tab:gray", lw=0.8,
             label="Grabación X")
@@ -50,12 +46,10 @@ def dibujar_reconocimiento(ax, senal, frec, frec_promedio, promedio, ganador, co
 
 
 def dibujar_corte(ax, frecuencia):
-    """Marca un corte vertical y devuelve la línea para poder quitarla después."""
     return ax.axvline(frecuencia, color="k", ls="--", lw=1)
 
 
 def generar_informe():
-    """Genera las imágenes de espectros para el informe."""
     carpeta_principal = "audio_3s"
     carpeta_salida = "graficas"
 

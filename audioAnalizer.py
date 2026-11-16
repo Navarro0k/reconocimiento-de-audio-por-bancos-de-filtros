@@ -72,7 +72,6 @@ else:
 
 
 def buscar_ffmpeg():
-    """Devuelve la ruta de ffmpeg: el del sistema o el que trae imageio-ffmpeg."""
     if shutil.which("ffmpeg"):
         return "ffmpeg"
     try:
@@ -89,7 +88,6 @@ FFMPEG = buscar_ffmpeg()
 
 
 def cargar_audio(ruta):
-    """Decodifica el mp3 a mono float32 a FS Hz usando ffmpeg."""
     cmd = [FFMPEG, "-v", "error", "-i", ruta, "-f", "f32le",
            "-ac", "1", "-ar", str(FS), "-"]
     res = subprocess.run(cmd, capture_output=True)
@@ -99,7 +97,6 @@ def cargar_audio(ruta):
 
 
 def mejor_ventana(x):
-    """Devuelve las N muestras consecutivas con mayor energía (paso de 0.25 s)."""
     paso = FS // 4
     acum = np.concatenate(([0.0], np.cumsum(x.astype(np.float64) ** 2)))
     mejor, ini_mejor = -1.0, 0
