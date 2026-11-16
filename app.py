@@ -184,14 +184,12 @@ class PestanaEntrenamiento(ctk.CTkFrame):
         der = ctk.CTkFrame(self.resultado, fg_color="transparent")
         der.pack(side="left", anchor="n", padx=(24, 0))
 
-        # Comparación de los vectores promedio (como la tabla del documento)
         ctk.CTkLabel(izq, anchor="w", text=f"Comparación de los vectores promedio (guardados en {trainer.RUTA_MODELO})",
                      font=ctk.CTkFont(weight="bold")).pack(fill="x")
         aciertos = trainer.evaluar(self.frec, self.espectros, self.cortes)
         filas = [[f"E_{nombre(a)}"] + numeros(v) + [f"{100 * aciertos[a]:.0f} %"] for a, v in vectores.items()]
         tabla(izq, ["Vector"] + rangos(self.cortes, self.fs) + ["Acierto entrenamiento"], filas).pack(anchor="w")
 
-        # Qué tan diferentes quedaron: distancia euclidiana entre cada par de vectores
         ctk.CTkLabel(der, anchor="w", text="Distancia entre vectores promedio",
                      font=ctk.CTkFont(weight="bold")).pack(fill="x")
         aves = list(vectores)
@@ -237,7 +235,6 @@ class PestanaReconocimiento(ctk.CTkFrame):
         der.grid(row=1, column=1, sticky="nsew")
         self.ax, self.canvas, self.toolbar = crear_grafica(der)
 
-    # --- grabación (sin bloquear la ventana) ---
     def grabar(self):
         if not os.path.exists(trainer.RUTA_MODELO):
             messagebox.showerror("Error", "No hay modelo. Entrena primero en la otra pestaña.")
@@ -259,7 +256,6 @@ class PestanaReconocimiento(ctk.CTkFrame):
         else:
             self.after(300, self.terminar)
 
-    # --- reconocimiento ---
     def terminar(self):
         x = recognizer.terminar_grabacion(self.buffer)
         try:

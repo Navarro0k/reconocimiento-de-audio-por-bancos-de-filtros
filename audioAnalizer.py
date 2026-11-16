@@ -4,24 +4,21 @@ import subprocess
 import numpy as np
 from scipy.io import wavfile
 from mutagen.mp3 import MP3
-from preprocesamiento import filtrar   # media móvil (filtro.py)
+from preprocesamiento import filtrar
 
-# Parámetros del recorte (paso 4)
-FS = 22050              # frecuencia de muestreo común (Nyquist = 11025 Hz)
-DURACION = 3.0          # segundos
-N = int(FS * DURACION)  # muestras por audio recortado
+FS = 22050
+DURACION = 3.0
+N = int(FS * DURACION)
 carpeta_salida = "audio_3s"
 
-# 1. Definir la carpeta principal y las subcarpetas de las aves
 carpeta_principal = "audio"
 carpetas_aves = ["Carpeta_Copeton", "Carpeta_Mirla"]
 duraciones = []
-archivos_corruptos = [] # Lista para almacenar los archivos fallidos
+archivos_corruptos = []
 
 print("--- DURACIÓN INDIVIDUAL DE AUDIOS ---")
 
 for nombre_carpeta in carpetas_aves:
-    # 2. Construir la nueva ruta (ej. audio/Carpeta_Copeton)
     ruta_carpeta = os.path.join(carpeta_principal, nombre_carpeta)
     
     if not os.path.exists(ruta_carpeta):
@@ -33,19 +30,16 @@ for nombre_carpeta in carpetas_aves:
             ruta_archivo = os.path.join(ruta_carpeta, archivo)
             try:
                 audio = MP3(ruta_archivo)
-                # Forzar lectura para validar que los metadatos existan
+                # Fuerza la lectura de los metadatos para detectar el archivo corrupto.
                 duracion = audio.info.length 
                 duraciones.append(duracion)
                 
-                # NUEVO: Imprimir el nombre del archivo y su duración
                 print(f"Carpeta: {nombre_carpeta} | Archivo: {archivo} -> {duracion:.2f} segundos")
                 
             except Exception as e:
-                # Si falla la lectura, se agrega a la lista de corruptos
                 print(f"Detectado archivo corrupto: {ruta_archivo}")
                 archivos_corruptos.append(ruta_archivo)
 
-# Mostrar el análisis de tiempos para los audios válidos
 if duraciones:
     duracion_minima = min(duraciones)
     duracion_maxima = max(duraciones)
@@ -59,7 +53,6 @@ if duraciones:
 else:
     print("\nNo se encontraron audios MP3 válidos para analizar en la carpeta 'audio'.")
 
-# 3. Interacción con el usuario para eliminar archivos corruptos
 if archivos_corruptos:
     print(f"\nSe detectaron {len(archivos_corruptos)} archivos corruptos que interrumpirán el cálculo de la FFT.")
     try:

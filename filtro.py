@@ -16,7 +16,7 @@ class MovingAverageFilter:
         if self.M >= N:
             raise ValueError(f"M ({self.M}) debe ser menor que N ({N}).")
 
-        y = np.zeros(N) # Inicializar un arreglo del tamaño correcto en lugar de []
+        y = np.zeros(N)
 
         for n in range(N):
             suma = 0.0

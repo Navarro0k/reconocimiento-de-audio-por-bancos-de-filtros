@@ -11,7 +11,6 @@ carpetas_aves = ["Carpeta_Copeton", "Carpeta_Mirla"]
 carpeta_salida = "graficas"
 colores = {"Carpeta_Copeton": "tab:blue", "Carpeta_Mirla": "tab:green"}
 
-# Cortes elegidos por el usuario en trainer.py
 with open(trainer.RUTA_MODELO) as f:
     cortes_hz = json.load(f)["cortes_hz"]
 
