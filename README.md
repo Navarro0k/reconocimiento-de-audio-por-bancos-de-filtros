@@ -40,9 +40,9 @@ Este proyecto reconoce **dos especies de aves** a partir de su canto, sin redes 
 ```mermaid
 flowchart LR
     A[Grabaciones<br/>Xeno-canto] --> B[Recorte a 3 s]
-    B --> B2[Pasa-altos y<br/>energía unitaria]
+    B --> B2[Normalización<br/>y filtrado]
     B2 --> C[FFT de cada audio]
-    C --> D[Elegir 2 cortes<br/>a mano o sugeridos]
+    C --> D[Elegir 2 cortes<br/>a mano]
     D --> E[Vector de energías<br/>de cada audio]
     E --> E2[Vector promedio<br/>por ave]
     E2 --> F[(vectores_promedio.json)]
@@ -54,7 +54,7 @@ flowchart LR
 
 ### Fórmulas
 
-**Espectro** de una señal (la FFT se aplica a la señal ya acondicionada):
+**Espectro** de una señal (la FFT se aplica a la señal ya normalizada y filtrada):
 
 $$\|X(k)\| = \left|\,\mathrm{fft}(x)\,\right|$$
 
@@ -74,7 +74,7 @@ $$d_C = \|E_X - E_C\| = \sqrt{\sum_{i=1}^{3}\left(E_{Xi}-E_{Ci}\right)^2} \qquad
 
 **Verificación:** `python verificar_documento.py` calcula el ejemplo de 8 puntos del documento con las funciones de `core.py` y compara cada resultado con el del documento.
 
-**Acondicionamiento** (agregado al documento; igual al entrenar y al reconocer, antes de la FFT): filtro Butterworth pasa-altos de 2 kHz, para que el ruido grave del micrófono no entre a las subbandas, y escalado a energía unitaria, para que el volumen de la grabación no cambie el vector. Los parámetros están en `preprocesamiento.py`.
+**Normalización y filtrado** (agregado al documento; igual al entrenar y al reconocer, antes de la FFT): la señal se normaliza a un pico de 0.9 con cuantización de 16 bits y se filtra con una media móvil de $M$ puntos. La implementación está en `filtro.py` y los parámetros en `preprocesamiento.py`.
 
 El espectro promedio $\|C(k)\|_m$ se usa solo para las gráficas.
 
@@ -86,7 +86,8 @@ El espectro promedio $\|C(k)\|_m$ se usa solo para las gráficas.
 .
 ├── DownloaderData.py      # Descarga y valida grabaciones (API de Xeno-canto)
 ├── audioAnalizer.py       # Analiza duraciones y recorta cada audio a 3 s
-├── preprocesamiento.py    # Parámetros de audio y preprocesamiento (no hace parte de las fórmulas)
+├── preprocesamiento.py    # Parámetros de audio y filtrado (no hace parte de las fórmulas)
+├── filtro.py              # Normalización y filtro de media móvil
 ├── verificar_documento.py # Comprueba core.py con el ejemplo de 8 puntos del documento
 ├── core.py                # ★ Núcleo: espectro, energía, energía promedio, distancia euclidiana
 ├── utilidades.py          # Apoyo: frecuencias, índices de corte y validación (no son fórmulas)

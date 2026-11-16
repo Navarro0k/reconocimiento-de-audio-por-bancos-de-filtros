@@ -1,5 +1,12 @@
 import numpy as np
 
+
+def normalizar(x):
+    """Pico a 0.9 y cuantización a 16 bits, como en el entrenamiento."""
+    seg = x / max(np.max(np.abs(x)), 1e-9) * 0.9
+    return (seg * 32767).astype(np.int16).astype(np.float32) / 32768.0
+
+
 class MovingAverageFilter:
     def __init__(self, M: int = 5):
         if not isinstance(M, int) or M < 1:
