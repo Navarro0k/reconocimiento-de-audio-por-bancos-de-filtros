@@ -4,154 +4,99 @@ import subprocess
 import numpy as np
 from scipy.io import wavfile
 from mutagen.mp3 import MP3
-from preprocesamiento import filtrar   # media móvil (filtro.py)
+from filtro import FS, N, filtrar, normalizar
 
-# Parámetros del recorte (paso 4)
-FS = 22050              # frecuencia de muestreo común (Nyquist = 11025 Hz)
-DURACION = 3.0          # segundos
-N = int(FS * DURACION)  # muestras por audio recortado
-carpeta_salida = "audio_3s"
-
-# 1. Definir la carpeta principal y las subcarpetas de las aves
-carpeta_principal = "audio"
-carpetas_aves = ["Carpeta_Copeton", "Carpeta_Mirla"]
-duraciones = []
-archivos_corruptos = [] # Lista para almacenar los archivos fallidos
-
-print("--- DURACIÓN INDIVIDUAL DE AUDIOS ---")
-
-for nombre_carpeta in carpetas_aves:
-    # 2. Construir la nueva ruta (ej. audio/Carpeta_Copeton)
-    ruta_carpeta = os.path.join(carpeta_principal, nombre_carpeta)
-    
-    if not os.path.exists(ruta_carpeta):
-        print(f"Advertencia: La carpeta '{ruta_carpeta}' no existe. Saltando...")
-        continue
-        
-    for archivo in os.listdir(ruta_carpeta):
-        if archivo.endswith(".mp3"):
-            ruta_archivo = os.path.join(ruta_carpeta, archivo)
-            try:
-                audio = MP3(ruta_archivo)
-                # Forzar lectura para validar que los metadatos existan
-                duracion = audio.info.length 
-                duraciones.append(duracion)
-                
-                # NUEVO: Imprimir el nombre del archivo y su duración
-                print(f"Carpeta: {nombre_carpeta} | Archivo: {archivo} -> {duracion:.2f} segundos")
-                
-            except Exception as e:
-                # Si falla la lectura, se agrega a la lista de corruptos
-                print(f"Detectado archivo corrupto: {ruta_archivo}")
-                archivos_corruptos.append(ruta_archivo)
-
-# Mostrar el análisis de tiempos para los audios válidos
-if duraciones:
-    duracion_minima = min(duraciones)
-    duracion_maxima = max(duraciones)
-    duracion_promedio = sum(duraciones) / len(duraciones)
-
-    print("\n--- ANÁLISIS GENERAL DE DURACIÓN ---")
-    print(f"Total de audios válidos procesados : {len(duraciones)}")
-    print(f"Duración Mínima                    : {duracion_minima:.2f} segundos")
-    print(f"Duración Máxima                    : {duracion_maxima:.2f} segundos")
-    print(f"Duración Promedio                  : {duracion_promedio:.2f} segundos")
-else:
-    print("\nNo se encontraron audios MP3 válidos para analizar en la carpeta 'audio'.")
-
-# 3. Interacción con el usuario para eliminar archivos corruptos
-if archivos_corruptos:
-    print(f"\nSe detectaron {len(archivos_corruptos)} archivos corruptos que interrumpirán el cálculo de la FFT.")
-    try:
-        respuesta = input("¿Deseas eliminar estos archivos permanentemente? (s/n): ").strip().lower()
-    except EOFError:  # ejecución sin teclado (p. ej. en un script automático)
-        respuesta = "n"
-    
-    if respuesta == 's' or respuesta == 'si':
-        archivos_eliminados = 0
-        for ruta in archivos_corruptos:
-            try:
-                os.remove(ruta)
-                archivos_eliminados += 1
-            except Exception as e:
-                print(f"Error al intentar borrar {ruta}: {e}")
-        print(f"Se han eliminado exitosamente {archivos_eliminados} archivos corruptos.")
-    else:
-        print("Operación cancelada. Los archivos corruptos se conservaron en sus carpetas.")
-else:
-    print("\nLa base de datos está limpia y no contiene archivos corruptos.")
-
+CARPETA_ORIGEN = "audio"
+CARPETA_DESTINO = "audio_3s"
+AVES = ["Carpeta_Copeton", "Carpeta_Mirla"]
 
 def buscar_ffmpeg():
-    """Devuelve la ruta de ffmpeg: el del sistema o el que trae imageio-ffmpeg."""
     if shutil.which("ffmpeg"):
         return "ffmpeg"
     try:
         import imageio_ffmpeg
         return imageio_ffmpeg.get_ffmpeg_exe()
     except ImportError:
-        raise SystemExit(
-            "No se encontró ffmpeg. Instálalo con:\n"
-            "    pip install imageio-ffmpeg\n"
-            "y vuelve a ejecutar este script.")
-
+        raise SystemExit("No se encontro ffmpeg. Instala imageio-ffmpeg.")
 
 FFMPEG = buscar_ffmpeg()
 
+def duracion_de(ruta):
+    return MP3(ruta).info.length
 
 def cargar_audio(ruta):
-    """Decodifica el mp3 a mono float32 a FS Hz usando ffmpeg."""
-    cmd = [FFMPEG, "-v", "error", "-i", ruta, "-f", "f32le",
-           "-ac", "1", "-ar", str(FS), "-"]
-    res = subprocess.run(cmd, capture_output=True)
-    if res.returncode != 0 or len(res.stdout) == 0:
-        raise ValueError(res.stderr.decode(errors="ignore").strip() or "vacío")
-    return np.frombuffer(res.stdout, dtype=np.float32)
+    comando = [FFMPEG, "-v", "error", "-i", ruta, "-f", "f32le", "-ac", "1", "-ar", str(FS), "-"]
+    resultado = subprocess.run(comando, capture_output=True)
+    if resultado.returncode != 0 or not resultado.stdout:
+        raise ValueError(resultado.stderr.decode(errors="ignore").strip() or "vacio")
+    return np.frombuffer(resultado.stdout, dtype=np.float32)
 
-
-def mejor_ventana(x):
-    """Devuelve las N muestras consecutivas con mayor energía (paso de 0.25 s)."""
-    paso = FS // 4
-    acum = np.concatenate(([0.0], np.cumsum(x.astype(np.float64) ** 2)))
-    mejor, ini_mejor = -1.0, 0
-    for ini in range(0, len(x) - N + 1, paso):
-        e = acum[ini + N] - acum[ini]
-        if e > mejor:
-            mejor, ini_mejor = e, ini
-    return x[ini_mejor:ini_mejor + N]
-
-
-print("\n--- RECORTE A 3 SEGUNDOS ---")
-for nombre_carpeta in carpetas_aves:
-    ruta_carpeta = os.path.join(carpeta_principal, nombre_carpeta)
-    if not os.path.exists(ruta_carpeta):
-        continue
-    destino = os.path.join(carpeta_salida, nombre_carpeta)
-    os.makedirs(destino, exist_ok=True)
-    ok = descartados = 0
-
-    for archivo in sorted(os.listdir(ruta_carpeta)):
-        if not archivo.endswith(".mp3"):
+def analizar_duraciones():
+    duraciones = []
+    corruptos = []
+    for ave in AVES:
+        ruta = os.path.join(CARPETA_ORIGEN, ave)
+        if not os.path.isdir(ruta):
+            print(f"Advertencia: no existe {ruta}")
             continue
-        ruta_archivo = os.path.join(ruta_carpeta, archivo)
-        if ruta_archivo in archivos_corruptos:
-            descartados += 1
-            continue
+        for archivo in os.listdir(ruta):
+            if not archivo.endswith(".mp3"):
+                continue
+            ruta_archivo = os.path.join(ruta, archivo)
+            try:
+                duracion = duracion_de(ruta_archivo)
+                duraciones.append(duracion)
+                print(f"{ave} | {archivo} -> {duracion:.2f} s")
+            except Exception:
+                print(f"Corrupto: {ruta_archivo}")
+                corruptos.append(ruta_archivo)
+    if duraciones:
+        print(f"Total: {len(duraciones)} | min {min(duraciones):.2f} | max {max(duraciones):.2f} | prom {sum(duraciones) / len(duraciones):.2f}")
+    else:
+        print("No se encontraron MP3 validos.")
+    if corruptos:
         try:
-            x = cargar_audio(ruta_archivo)
-        except Exception as e:
-            print(f"  [no se pudo decodificar] {archivo}: {e}")
-            descartados += 1
-            continue
-        pico = np.max(np.abs(x)) if len(x) else 0.0
-        if len(x) < N or pico < 1e-4:   # muy corto o silencio total
-            descartados += 1
-            continue
-        seg = mejor_ventana(x)
-        seg = seg / max(np.max(np.abs(seg)), 1e-9) * 0.9
-        seg = filtrar(seg)   # media móvil: audio_3s queda con los audios ya filtrados
-        wavfile.write(os.path.join(destino, archivo.replace(".mp3", ".wav")),
-                      FS, (seg * 32767).astype(np.int16))
-        ok += 1
+            respuesta = input("Eliminar corruptos? (s/n): ").strip().lower()
+        except EOFError:
+            respuesta = "n"
+        if respuesta in ("s", "si"):
+            for ruta in corruptos:
+                try:
+                    os.remove(ruta)
+                    print(f"Eliminado {ruta}")
+                except OSError as error:
+                    print(f"Error al borrar {ruta}: {error}")
+    return corruptos
 
-    print(f"{nombre_carpeta}: {ok} recortados | {descartados} descartados")
+def recortar_todo(corruptos):
+    for ave in AVES:
+        origen = os.path.join(CARPETA_ORIGEN, ave)
+        destino = os.path.join(CARPETA_DESTINO, ave)
+        if not os.path.isdir(origen):
+            continue
+        os.makedirs(destino, exist_ok=True)
+        ok = 0
+        descartados = 0
+        for archivo in sorted(os.listdir(origen)):
+            if not archivo.endswith(".mp3"):
+                continue
+            ruta_archivo = os.path.join(origen, archivo)
+            if ruta_archivo in corruptos:
+                descartados += 1
+                continue
+            try:
+                x = cargar_audio(ruta_archivo)
+            except ValueError as error:
+                print(f"No se pudo decodificar {archivo}: {error}")
+                descartados += 1
+                continue
+            if len(x) < N or np.max(np.abs(x)) < 1e-4:
+                descartados += 1
+                continue
+            seg = filtrar(normalizar(x[:N]))
+            wavfile.write(os.path.join(destino, archivo.replace(".mp3", ".wav")), FS, (seg * 32767).astype(np.int16))
+            ok += 1
+        print(f"{ave}: {ok} recortados | {descartados} descartados")
+
+corruptos = analizar_duraciones()
+recortar_todo(corruptos)
