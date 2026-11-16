@@ -153,7 +153,7 @@ class PestanaEntrenamiento(ctk.CTkFrame):
 
     def guardar(self):
         try:
-            vectores, aciertos = trainer.entrenar(self.fs, self.frec, self.espectros, self.cortes)
+            vectores = trainer.entrenar(self.fs, self.frec, self.espectros, self.cortes)
         except ValueError as e:
             messagebox.showerror("Cortes no válidos", f"{e}\n\nDeshaz el corte y marca otro.")
             return
@@ -161,20 +161,11 @@ class PestanaEntrenamiento(ctk.CTkFrame):
             w.destroy()
         izq = ctk.CTkFrame(self.resultado, fg_color="transparent")
         izq.pack(side="left", anchor="n")
-        der = ctk.CTkFrame(self.resultado, fg_color="transparent")
-        der.pack(side="left", anchor="n", padx=(24, 0))
 
-        ctk.CTkLabel(izq, anchor="w", text=f"Comparación de los vectores promedio (guardados en {trainer.RUTA_MODELO})",
+        ctk.CTkLabel(izq, anchor="w", text=f"Vectores promedio guardados en {trainer.RUTA_MODELO}",
                      font=ctk.CTkFont(weight="bold")).pack(fill="x")
-        filas = [[f"E_{nombre(a)}"] + numeros(v) + [f"{100 * aciertos[a]:.0f} %"] for a, v in vectores.items()]
-        tabla(izq, ["Vector"] + rangos(self.cortes, self.fs) + ["Acierto entrenamiento"], filas).pack(anchor="w")
-
-        ctk.CTkLabel(der, anchor="w", text="Distancia entre vectores promedio",
-                     font=ctk.CTkFont(weight="bold")).pack(fill="x")
-        aves = list(vectores)
-        filas = [[f"||E_{nombre(a)} − E_{nombre(b)}||", f"{core.diferencia_euclidiana(vectores[a], vectores[b]):,.2f}"]
-                 for i, a in enumerate(aves) for b in aves[i + 1:]]
-        tabla(der, ["Par", "Distancia"], filas).pack(anchor="w")
+        filas = [[f"E_{nombre(a)}"] + numeros(v) for a, v in vectores.items()]
+        tabla(izq, ["Vector"] + rangos(self.cortes, self.fs), filas).pack(anchor="w")
 
 
 class PestanaReconocimiento(ctk.CTkFrame):

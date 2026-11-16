@@ -26,7 +26,7 @@ Este proyecto reconoce **dos especies de aves** a partir de su canto, sin redes 
 
 **Características**
 
-- 🎛️ **Entrenamiento interactivo:** tú eliges sobre la gráfica los 2 puntos que dividen el vector FFT en 3 subbandas, o dejas que la app los sugiera.
+- 🎛️ **Entrenamiento interactivo:** tú eliges sobre la gráfica los 2 puntos que dividen el vector FFT en 3 subbandas.
 - 🎙️ **Reconocimiento en vivo:** graba 3 s desde el micrófono y muestra el resultado al instante.
 - 📊 **Resultados claros:** vector de energías, diferencias por subbanda, distancia euclidiana y comparación de espectros.
 - 🐤 **Imagen del ave reconocida** junto al resultado.

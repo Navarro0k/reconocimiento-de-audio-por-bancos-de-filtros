@@ -69,8 +69,8 @@ def entrenar(frecuencia_muestreo, frecuencias, espectros_por_ave, cortes_hz):
     """Entrena con los espectros cargados y guarda el modelo.
 
     Valida los cortes, calcula el vector de energías de cada audio y el promedio de cada ave,
-    mide cuántos audios quedan más cerca de su propia ave y escribe el resultado en el JSON.
-    Devuelve los vectores promedio y el acierto de cada ave.
+    y escribe los vectores promedio en el JSON.
+    Devuelve los vectores promedio.
     Lanza ValueError si algún corte deja una subbanda vacía; en ese caso no guarda nada.
     """
     indices = utilidades.validar_cortes(frecuencias, cortes_hz)
@@ -83,16 +83,6 @@ def entrenar(frecuencia_muestreo, frecuencias, espectros_por_ave, cortes_hz):
     for ave, energias in energias_por_audio.items():
         vectores_promedio[ave] = core.energia_promedio(energias)
 
-    aciertos = {}
-    for ave, energias in energias_por_audio.items():
-        acertados = 0
-        for energia in energias:
-            distancias = {nombre: core.diferencia_euclidiana(energia, vector)
-                          for nombre, vector in vectores_promedio.items()}
-            if min(distancias, key=distancias.get) == ave:
-                acertados += 1
-        aciertos[ave] = acertados / len(energias)
-
     os.makedirs(os.path.dirname(RUTA_MODELO), exist_ok=True)
     with open(RUTA_MODELO, "w") as archivo:
         json.dump({"metodo": METODO,
@@ -100,4 +90,4 @@ def entrenar(frecuencia_muestreo, frecuencias, espectros_por_ave, cortes_hz):
                    "cortes_hz": sorted(cortes_hz),
                    "vectores_promedio": vectores_promedio},
                   archivo, indent=4, allow_nan=False)
-    return vectores_promedio, aciertos
+    return vectores_promedio
