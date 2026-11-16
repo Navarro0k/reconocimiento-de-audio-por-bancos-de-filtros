@@ -11,6 +11,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 import core
 import trainer
 import recognizer
+import utilidades
 from preprocesamiento import FS, DURACION, normalizar, filtrar, acondicionar, hay_canto
 
 N_CORTES = 2   # -> 3 subbandas, como en el documento
@@ -334,7 +335,7 @@ class PestanaReconocimiento(ctk.CTkFrame):
             self.cache[ganador] = (frec_a, z_a)
         frec_a, z_a = self.cache[ganador]
         self.ax.clear()
-        self.ax.plot(core.frecuencias(len(x), FS), core.espectro(x), color="tab:gray", lw=0.8,
+        self.ax.plot(utilidades.frecuencias(len(x), FS), core.espectro(x), color="tab:gray", lw=0.8,
                      label="Grabación X")
         self.ax.plot(frec_a, z_a, color=trainer.COLORES[ganador], lw=1.2,
                      label=f"Promedio {nombre(ganador)} (mínima distancia)")

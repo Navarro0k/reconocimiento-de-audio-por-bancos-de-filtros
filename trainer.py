@@ -5,6 +5,7 @@ import itertools
 import numpy as np
 from scipy.io import wavfile
 import core
+import utilidades
 from preprocesamiento import acondicionar
 
 CARPETA = "audio_3s"   # WAV de 3 s ya filtrados por audioAnalizer.py
@@ -39,7 +40,7 @@ def cargar_promedio(ave):
     fs, lista = espectros_de_carpeta(os.path.join(CARPETA, ave))
     if not lista:
         raise FileNotFoundError(f"No hay audios en '{CARPETA}/{ave}'.")
-    return fs, core.frecuencias(2 * (len(lista[0]) - 1), fs), espectro_promedio(lista)
+    return fs, utilidades.frecuencias(2 * (len(lista[0]) - 1), fs), espectro_promedio(lista)
 
 
 def cargar_espectros():
@@ -52,7 +53,7 @@ def cargar_espectros():
         fs_ave, lista = espectros_de_carpeta(ruta)
         if lista:
             fs, espectros[ave] = fs_ave, lista
-            frec = core.frecuencias(2 * (len(lista[0]) - 1), fs)
+            frec = utilidades.frecuencias(2 * (len(lista[0]) - 1), fs)
     if not espectros:
         raise FileNotFoundError(f"No hay audios en '{CARPETA}'. Ejecuta antes audioAnalizer.py.")
     return fs, frec, espectros
@@ -71,7 +72,7 @@ def cargar_promedios():
 
 def vectores_por_audio(frec, espectros, cortes_hz):
     """{ave: [vector de energías [E_1 ... E_S] de cada audio]}"""
-    indices = core.validar_cortes(frec, cortes_hz)
+    indices = utilidades.validar_cortes(frec, cortes_hz)
     N = 2 * (len(frec) - 1)   # puntos de la FFT completa
     return {ave: [core.vector_energias(core.vector_completo(z, N), indices) for z in lista]
             for ave, lista in espectros.items()}

@@ -4,6 +4,7 @@ import json
 import math
 import time
 import core
+import utilidades
 from preprocesamiento import FS, N
 from trainer import RUTA_MODELO, METODO
 
@@ -54,7 +55,7 @@ def reconocer(x, cortes_hz, E_promedio):
     """
     N = len(x)
     X = core.vector_completo(core.espectro(x), N)                          # 1. ||X(k)||, k = 0..N-1
-    k_cortes = core.indices_de_corte(core.frecuencias(N, FS), cortes_hz)
+    k_cortes = utilidades.indices_de_corte(utilidades.frecuencias(N, FS), cortes_hz)
     E_x = core.vector_energias(X, k_cortes)                                # 2 y 3. E_x = (E_1, E_2, E_3)
     d = core.distancias(E_x, E_promedio)                                   # 5. d_ave = ||E_x - E_ave||
     tipo = core.tipo_reconocido(d)                                         # 6. menor distancia

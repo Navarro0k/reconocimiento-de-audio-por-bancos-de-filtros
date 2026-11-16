@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import core
 import trainer
+import utilidades
 
 carpeta_principal = "audio_3s"
 carpetas_aves = ["Carpeta_Copeton", "Carpeta_Mirla"]
@@ -25,10 +26,10 @@ for ave in carpetas_aves:
     fs, espectros = trainer.espectros_de_carpeta(ruta)
     if not espectros:
         continue
-    frec = core.frecuencias(2 * (len(espectros[0]) - 1), fs)
+    frec = utilidades.frecuencias(2 * (len(espectros[0]) - 1), fs)
     Zp = trainer.espectro_promedio(espectros)
     promedios[ave] = (frec, Zp)
-    indices = core.indices_de_corte(frec, cortes_hz)
+    indices = utilidades.indices_de_corte(frec, cortes_hz)
     energias = core.vector_energias(core.vector_completo(Zp, 2 * (len(Zp) - 1)), indices)
     limites = [0] + list(indices) + [len(Zp)]
 

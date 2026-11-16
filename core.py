@@ -27,32 +27,6 @@ def vector_completo(z, N):
     return np.concatenate([z, reflejo])
 
 
-def frecuencias(N, fs):
-    """Frecuencia en Hz de cada índice k (para graficar y ubicar los cortes)."""
-    return np.fft.rfftfreq(N, d=1.0 / fs)
-
-
-def indices_de_corte(frec, cortes_hz):
-    """Cortes elegidos en la gráfica [Hz] -> índices k del espectro."""
-    return np.searchsorted(frec, np.sort(cortes_hz))
-
-
-def validar_cortes(frec, cortes_hz):
-    """
-    Lanza ValueError si algún corte deja una subbanda sin muestras.
-    Pasa cuando dos cortes caen en el mismo índice k (p. ej. doble clic en el mismo
-    punto), o un corte queda en 0 Hz o en fs/2: esa subbanda tendría N_i = 0 y
-    E = 0/0 = nan.
-    """
-    indices = indices_de_corte(frec, cortes_hz)
-    limites = np.concatenate(([0], indices, [len(frec)]))   # los cortes van en la mitad útil (0 a fs/2)
-    vacias = [i + 1 for i in range(len(limites) - 1) if limites[i + 1] <= limites[i]]
-    if vacias:
-        raise ValueError(f"Las subbandas {', '.join(f'S{i}' for i in vacias)} quedan vacías: "
-                         "hay cortes repetidos o en los extremos del espectro.")
-    return indices
-
-
 def particion(X, k_cortes):
     """Divide el vector X(k) en los subvectores X_1, X_2, ... en los índices k_cortes."""
     return np.split(X, k_cortes)
