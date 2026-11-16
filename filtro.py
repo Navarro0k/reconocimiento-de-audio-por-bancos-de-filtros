@@ -10,9 +10,9 @@ M_FILTRO = 3
 
 
 def normalizar(x):
-    """Pico a 0.9 y cuantización a 16 bits, como en el entrenamiento."""
-    seg = x / max(np.max(np.abs(x)), 1e-9) * 0.9
-    return (seg * 32767).astype(np.int16).astype(np.float32) / 32768.0
+    """Escala la señal para que su pico valga 0.9."""
+    pico = max(np.max(np.abs(x)), 1e-9)
+    return (np.asarray(x) / pico * 0.9).astype(np.float32)
 
 
 class MovingAverageFilter:
