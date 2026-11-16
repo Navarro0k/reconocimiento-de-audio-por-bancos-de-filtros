@@ -9,7 +9,6 @@ from filtro import normalizar
 
 CARPETA = "audio_3s"
 AVES = ["Carpeta_Copeton", "Carpeta_Mirla"]
-COLORES = {"Carpeta_Copeton": "tab:blue", "Carpeta_Mirla": "tab:green"}
 RUTA_MODELO = os.path.join("models", "vectores_promedio.json")
 
 

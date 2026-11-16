@@ -19,6 +19,7 @@ SEPARACION_MIN_HZ = 100   # distancia mínima entre cortes (y a 0 Hz / fs/2) par
 VERDE = "#c8f0cf"
 CARPETA_IMAGENES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "imagenes")
 TAM_IMAGEN = 140   # px del ave reconocida
+COLORES = {"Carpeta_Copeton": "tab:blue", "Carpeta_Mirla": "tab:green"}
 
 
 def nombre(ave):
@@ -112,7 +113,7 @@ class PestanaEntrenamiento(ctk.CTkFrame):
         self.cortes, self.lineas = [], []
         self.ax.clear()
         for ave, z in self.promedios.items():
-            self.ax.plot(self.frec, z, color=trainer.COLORES[ave], lw=1, label=nombre(ave))
+            self.ax.plot(self.frec, z, color=COLORES[ave], lw=1, label=nombre(ave))
         tope = max(z[self.frec > 100].max() for z in self.promedios.values())   # z ya es la mitad útil
         self.ax.set(xlabel="Frecuencia [Hz]", ylabel="||C(k)||_m", title="Espectros promedio",
                     xlim=(0, self.frec[-1]), ylim=(0, 4 * tope))
@@ -289,7 +290,7 @@ class PestanaReconocimiento(ctk.CTkFrame):
         self.ax.clear()
         self.ax.plot(frec, core.espectro(x)[:len(frec)], color="tab:gray", lw=0.8,
                      label="Grabación X")
-        self.ax.plot(frec_a, z_a, color=trainer.COLORES[ganador], lw=1.2,
+        self.ax.plot(frec_a, z_a, color=COLORES[ganador], lw=1.2,
                      label=f"Promedio {nombre(ganador)} (mínima distancia)")
         for c in cortes:
             self.ax.axvline(c, color="k", ls="--", lw=0.8)
