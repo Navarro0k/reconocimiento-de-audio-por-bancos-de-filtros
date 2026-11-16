@@ -15,7 +15,6 @@ from appvista import VistaEntrenamiento, VistaReconocimiento
 N_CORTES = 2
 SEPARACION_MIN_HZ = 100
 
-
 class ControlEntrenamiento:
 
     def __init__(self):
@@ -49,7 +48,6 @@ class ControlEntrenamiento:
             return
         self.vista.mostrar_vectores(self.vista.cortes, self.frecuencia_muestreo,
                                     vectores, trainer.RUTA_MODELO)
-
 
 class ControlReconocimiento:
 
@@ -100,7 +98,6 @@ class ControlReconocimiento:
             self.cache[ave] = (frecuencias, promedio)
         return self.cache[ave]
 
-
 def main():
     ctk.set_appearance_mode("light")
     ctk.set_default_color_theme("blue")
@@ -128,7 +125,6 @@ def main():
     vista_reconocimiento.pack(fill="both", expand=True)
 
     raiz.mainloop()
-
 
 if __name__ == "__main__":
     main()

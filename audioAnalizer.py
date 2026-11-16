@@ -70,7 +70,6 @@ if archivos_corruptos:
 else:
     print("\nLa base de datos está limpia y no contiene archivos corruptos.")
 
-
 def buscar_ffmpeg():
     if shutil.which("ffmpeg"):
         return "ffmpeg"
@@ -83,9 +82,7 @@ def buscar_ffmpeg():
             "    pip install imageio-ffmpeg\n"
             "y vuelve a ejecutar este script.")
 
-
 FFMPEG = buscar_ffmpeg()
-
 
 def cargar_audio(ruta):
     cmd = [FFMPEG, "-v", "error", "-i", ruta, "-f", "f32le",
@@ -94,7 +91,6 @@ def cargar_audio(ruta):
     if res.returncode != 0 or len(res.stdout) == 0:
         raise ValueError(res.stderr.decode(errors="ignore").strip() or "vacío")
     return np.frombuffer(res.stdout, dtype=np.float32)
-
 
 def mejor_ventana(x):
     paso = FS // 4
@@ -105,7 +101,6 @@ def mejor_ventana(x):
         if e > mejor:
             mejor, ini_mejor = e, ini
     return x[ini_mejor:ini_mejor + N]
-
 
 print("\n--- RECORTE A 3 SEGUNDOS ---")
 for nombre_carpeta in carpetas_aves:

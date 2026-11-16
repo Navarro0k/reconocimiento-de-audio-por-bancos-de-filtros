@@ -1,14 +1,11 @@
 
 import numpy as np
 
-
 def frecuencias(N, fs):
     return np.fft.rfftfreq(N, d=1.0 / fs)
 
-
 def indices_de_corte(frec, cortes_hz):
     return np.searchsorted(frec, np.sort(cortes_hz))
-
 
 def validar_cortes(frec, cortes_hz):
 

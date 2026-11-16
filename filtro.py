@@ -7,11 +7,9 @@ N = int(FS * DURACION)
 USAR_FILTRO = True
 M_FILTRO = 3
 
-
 def normalizar(x):
     pico = max(np.max(np.abs(x)), 1e-9)
     return (np.asarray(x) / pico * 0.9).astype(np.float32)
-
 
 class MovingAverageFilter:
     def __init__(self, M: int = 5):
@@ -41,9 +39,7 @@ class MovingAverageFilter:
 
         return y
 
-
 _filtro = MovingAverageFilter(M_FILTRO)
-
 
 def filtrar(x):
     if not USAR_FILTRO:

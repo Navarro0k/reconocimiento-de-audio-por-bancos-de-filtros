@@ -7,7 +7,6 @@ import utilidades
 from filtro import FS, N
 from trainer import RUTA_MODELO
 
-
 def cargar_modelo():
     with open(RUTA_MODELO) as f:
         m = json.load(f)
@@ -20,20 +19,16 @@ def cargar_modelo():
                              "(subbanda vacía por cortes repetidos). Vuelve a entrenar.")
     return m["cortes_hz"], m["vectores_promedio"]
 
-
 def iniciar_grabacion():
     import sounddevice as sd
     return sd.rec(N, samplerate=FS, channels=1, dtype="float32")
-
 
 def terminar_grabacion(buffer):
     import sounddevice as sd
     sd.wait()
     return buffer[:, 0]
 
-
 CARPETA_GRABACIONES = "grabaciones"
-
 
 def guardar_grabacion(x):
     from scipy.io import wavfile
@@ -41,7 +36,6 @@ def guardar_grabacion(x):
     ruta = os.path.join(CARPETA_GRABACIONES, time.strftime("grabacion_%Y%m%d_%H%M%S.wav"))
     wavfile.write(ruta, FS, x.astype("float32"))
     return ruta
-
 
 def reconocer(x, cortes_hz, E_promedio):
     N = len(x)

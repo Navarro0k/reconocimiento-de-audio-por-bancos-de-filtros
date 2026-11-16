@@ -7,28 +7,22 @@ VERDE = "#c8f0cf"
 CARPETA_IMAGENES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "imagenes")
 TAM_IMAGEN = 140
 
-
 def nombre(ave):
     return ave.replace("Carpeta_", "")
-
 
 def rangos(cortes_hz, fmax):
     lim = [0] + sorted(cortes_hz) + [fmax]
     return [f"S{i + 1} ({lim[i] / 1000:.1f}–{lim[i + 1] / 1000:.1f} kHz)" for i in range(len(lim) - 1)]
 
-
 def imagen_ave(ave):
     ruta = os.path.join(CARPETA_IMAGENES, f"{nombre(ave).lower()}.png")
     return ruta if os.path.exists(ruta) else None
 
-
 def numeros(v):
     return [f"{e:,.2f}" for e in v]
 
-
 def numeros_cortos(v):
     return [f"{e:.3e}" if abs(e) >= 1e7 else f"{e:,.2f}" for e in v]
-
 
 def tabla(padre, encabezados, filas, resaltar=None):
     marco = ctk.CTkFrame(padre, fg_color="gray40", corner_radius=0)
@@ -45,7 +39,6 @@ def tabla(padre, encabezados, filas, resaltar=None):
                          anchor="center"
                          ).grid(row=i + 1, column=j, padx=1, pady=1, sticky="nsew", ipadx=6, ipady=1)
     return marco
-
 
 class VistaEntrenamiento(ctk.CTkFrame):
 
@@ -126,7 +119,6 @@ class VistaEntrenamiento(ctk.CTkFrame):
                      font=ctk.CTkFont(weight="bold")).pack(fill="x")
         filas = [[f"E_{nombre(a)}"] + numeros(v) for a, v in vectores.items()]
         tabla(izq, ["Vector"] + rangos(cortes, frecuencia_muestreo), filas).pack(anchor="w")
-
 
 class VistaReconocimiento(ctk.CTkFrame):
 

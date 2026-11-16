@@ -10,7 +10,6 @@ from filtro import FS
 
 COLORES = {"Carpeta_Copeton": "tab:blue", "Carpeta_Mirla": "tab:green"}
 
-
 def crear_grafica(padre):
     fig = Figure(figsize=(7, 4.2), layout="constrained")
     ax = fig.add_subplot(111)
@@ -21,7 +20,6 @@ def crear_grafica(padre):
     canvas.get_tk_widget().pack(side="top", fill="both", expand=True)
     return ax, canvas, barra
 
-
 def dibujar_espectros_promedio(ax, frec, promedios):
     ax.clear()
     for ave, espectro in promedios.items():
@@ -30,7 +28,6 @@ def dibujar_espectros_promedio(ax, frec, promedios):
     ax.set(xlabel="Frecuencia [Hz]", ylabel="||C(k)||_m", title="Espectros promedio",
            xlim=(0, frec[-1]), ylim=(0, 4 * tope))
     ax.legend(loc="upper right")
-
 
 def dibujar_reconocimiento(ax, senal, frec, frec_promedio, promedio, ganador, cortes):
     ax.clear()
@@ -44,10 +41,8 @@ def dibujar_reconocimiento(ax, senal, frec, frec_promedio, promedio, ganador, co
            title="Espectro de la grabación vs. ave reconocida")
     ax.legend(loc="upper right")
 
-
 def dibujar_corte(ax, frecuencia):
     return ax.axvline(frecuencia, color="k", ls="--", lw=1)
-
 
 def generar_informe():
     carpeta_principal = "audio_3s"
@@ -107,7 +102,6 @@ def generar_informe():
         fig.savefig(os.path.join(carpeta_salida, "espectro_promedio_aves.png"), dpi=130)
         plt.close(fig)
         print("Superpuestas -> graficas/espectro_promedio_aves.png")
-
 
 if __name__ == "__main__":
     generar_informe()
