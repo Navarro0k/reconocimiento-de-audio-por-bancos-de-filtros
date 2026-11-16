@@ -22,7 +22,7 @@ for ave in carpetas_aves:
     if not os.path.exists(ruta):
         print(f"Advertencia: no existe '{ruta}'. Saltando...")
         continue
-    fs, espectros = trainer.espectros_de_carpeta(ruta)
+    fs, espectros = trainer.cargar_espectros_de_carpeta(ruta)
     if not espectros:
         continue
     frec = utilidades.frecuencias(len(espectros[0]), fs)

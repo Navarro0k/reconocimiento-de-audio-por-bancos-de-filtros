@@ -1,4 +1,4 @@
-"""Fase de entrenamiento (lógica). La interfaz está en app.py."""
+"""Lógica de entrenamiento: carga los audios, calcula sus espectros y guarda el modelo."""
 import os
 import json
 import numpy as np
@@ -14,65 +14,90 @@ RUTA_MODELO = os.path.join("models", "vectores_promedio.json")
 METODO = "vector_completo_euclidiana"
 
 
-def espectros_de_carpeta(ruta):
-    """(fs, [||X(k)|| de cada .wav de la carpeta, k = 0..N-1])"""
-    fs, lista = None, []
+def cargar_espectros_de_carpeta(ruta):
+    """Devuelve la frecuencia de muestreo y el espectro de cada archivo WAV de la carpeta."""
+    frecuencia_muestreo = None
+    espectros = []
     for archivo in sorted(os.listdir(ruta)):
-        if archivo.endswith(".wav"):
-            fs, muestras = wavfile.read(os.path.join(ruta, archivo))
-            lista.append(core.espectro(normalizar(muestras.astype(np.float32) / 32768.0)))
-    return fs, lista
+        if not archivo.endswith(".wav"):
+            continue
+        frecuencia_muestreo, muestras = wavfile.read(os.path.join(ruta, archivo))
+        senal = muestras.astype(np.float32) / 32768.0
+        espectros.append(core.espectro(normalizar(senal)))
+    return frecuencia_muestreo, espectros
 
 
-def cargar_promedio(ave):
-    """(fs, frec, ||C(k)||_m) de una sola ave. FileNotFoundError si no hay audios."""
-    fs, lista = espectros_de_carpeta(os.path.join(CARPETA, ave))
-    if not lista:
+def cargar_espectro_promedio(ave):
+    """Devuelve la frecuencia de muestreo, las frecuencias y el espectro promedio de un ave."""
+    frecuencia_muestreo, espectros = cargar_espectros_de_carpeta(os.path.join(CARPETA, ave))
+    if not espectros:
         raise FileNotFoundError(f"No hay audios en '{CARPETA}/{ave}'.")
-    frec = utilidades.frecuencias(len(lista[0]), fs)
-    return fs, frec, core.espectro_promedio(lista)[:len(frec)]
+    frecuencias = utilidades.frecuencias(len(espectros[0]), frecuencia_muestreo)
+    promedio = core.espectro_promedio(espectros)[:len(frecuencias)]
+    return frecuencia_muestreo, frecuencias, promedio
 
 
 def cargar_espectros():
-    """(fs, frec, {ave: [||X(k)|| de cada audio]}) de todas las aves disponibles."""
-    fs, frec, espectros = None, None, {}
+    """Carga las aves disponibles y devuelve su frecuencia de muestreo, frecuencias y espectros."""
+    frecuencia_muestreo = None
+    frecuencias = None
+    espectros_por_ave = {}
     for ave in AVES:
         ruta = os.path.join(CARPETA, ave)
         if not os.path.isdir(ruta):
             continue
-        fs_ave, lista = espectros_de_carpeta(ruta)
-        if lista:
-            fs, espectros[ave] = fs_ave, lista
-            frec = utilidades.frecuencias(len(lista[0]), fs)
-    if not espectros:
+        frecuencia_ave, espectros = cargar_espectros_de_carpeta(ruta)
+        if not espectros:
+            continue
+        frecuencia_muestreo = frecuencia_ave
+        espectros_por_ave[ave] = espectros
+        frecuencias = utilidades.frecuencias(len(espectros[0]), frecuencia_muestreo)
+    if not espectros_por_ave:
         raise FileNotFoundError(f"No hay audios en '{CARPETA}'. Ejecuta antes audioAnalizer.py.")
-    return fs, frec, espectros
+    return frecuencia_muestreo, frecuencias, espectros_por_ave
 
 
-def promedios_de(espectros):
-    """{ave: ||C(k)||_m}: espectro promedio de cada ave (mitad útil, solo para graficar)."""
-    return {ave: core.espectro_promedio(lista)[:len(lista[0]) // 2 + 1]
-            for ave, lista in espectros.items()}
+def calcular_espectros_promedio(espectros_por_ave):
+    """Calcula el espectro promedio de cada ave. Se usa solo para las gráficas."""
+    promedios = {}
+    for ave, espectros in espectros_por_ave.items():
+        promedios[ave] = core.espectro_promedio(espectros)[:len(espectros[0]) // 2 + 1]
+    return promedios
 
 
-def entrenar(fs, frec, espectros, cortes_hz):
-    """Calcula los vectores promedio, mide el acierto y guarda el modelo.
-    Devuelve ({ave: E_ave}, {ave: fracción de audios bien clasificados}).
-    ValueError si los cortes dejan alguna subbanda vacía (no se guarda nada)."""
-    indices = utilidades.validar_cortes(frec, cortes_hz)
-    por_audio = {ave: [core.energia(z, indices) for z in lista]
-                 for ave, lista in espectros.items()}
-    promedios = {ave: core.energia_promedio(vectores) for ave, vectores in por_audio.items()}
+def entrenar(frecuencia_muestreo, frecuencias, espectros_por_ave, cortes_hz):
+    """Entrena con los espectros cargados y guarda el modelo.
+
+    Valida los cortes, calcula el vector de energías de cada audio y el promedio de cada ave,
+    mide cuántos audios quedan más cerca de su propia ave y escribe el resultado en el JSON.
+    Devuelve los vectores promedio y el acierto de cada ave.
+    Lanza ValueError si algún corte deja una subbanda vacía; en ese caso no guarda nada.
+    """
+    indices = utilidades.validar_cortes(frecuencias, cortes_hz)
+
+    energias_por_audio = {}
+    for ave, espectros in espectros_por_ave.items():
+        energias_por_audio[ave] = [core.energia(espectro, indices) for espectro in espectros]
+
+    vectores_promedio = {}
+    for ave, energias in energias_por_audio.items():
+        vectores_promedio[ave] = core.energia_promedio(energias)
+
     aciertos = {}
-    for ave, vectores in por_audio.items():
-        bien = sum(1 for E in vectores
-                   if min(promedios, key=lambda a: core.diferencia_euclidiana(E, promedios[a])) == ave)
-        aciertos[ave] = bien / len(vectores)
+    for ave, energias in energias_por_audio.items():
+        acertados = 0
+        for energia in energias:
+            distancias = {nombre: core.diferencia_euclidiana(energia, vector)
+                          for nombre, vector in vectores_promedio.items()}
+            if min(distancias, key=distancias.get) == ave:
+                acertados += 1
+        aciertos[ave] = acertados / len(energias)
 
     os.makedirs(os.path.dirname(RUTA_MODELO), exist_ok=True)
-    with open(RUTA_MODELO, "w") as f:
-        json.dump({"metodo": METODO, "fs": fs, "cortes_hz": sorted(cortes_hz),
-                   "vectores_promedio": promedios},
-                  f, indent=4, allow_nan=False)
-    return promedios, aciertos
-
+    with open(RUTA_MODELO, "w") as archivo:
+        json.dump({"metodo": METODO,
+                   "fs": frecuencia_muestreo,
+                   "cortes_hz": sorted(cortes_hz),
+                   "vectores_promedio": vectores_promedio},
+                  archivo, indent=4, allow_nan=False)
+    return vectores_promedio, aciertos

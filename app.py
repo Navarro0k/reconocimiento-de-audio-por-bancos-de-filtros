@@ -108,7 +108,7 @@ class PestanaEntrenamiento(ctk.CTkFrame):
         except Exception as e:
             messagebox.showerror("Error", str(e))
             return
-        self.promedios = trainer.promedios_de(self.espectros)
+        self.promedios = trainer.calcular_espectros_promedio(self.espectros)
         self.cortes, self.lineas = [], []
         self.ax.clear()
         for ave, z in self.promedios.items():
@@ -291,7 +291,7 @@ class PestanaReconocimiento(ctk.CTkFrame):
 
     def graficar(self, x, ganador, cortes):
         if ganador not in self.cache:
-            _, frec_a, z_a = trainer.cargar_promedio(ganador)
+            _, frec_a, z_a = trainer.cargar_espectro_promedio(ganador)
             self.cache[ganador] = (frec_a, z_a)
         frec_a, z_a = self.cache[ganador]
         frec = utilidades.frecuencias(len(x), FS)
