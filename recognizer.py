@@ -1,4 +1,4 @@
-"""Fase de reconocimiento (lógica). La interfaz está en app.py."""
+"""Fase de reconocimiento (lógica). La interfaz está en appvista.py."""
 import os
 import json
 import math
