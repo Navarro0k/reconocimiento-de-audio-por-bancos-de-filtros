@@ -4,11 +4,8 @@ import subprocess
 import numpy as np
 from scipy.io import wavfile
 from mutagen.mp3 import MP3
-from preprocesamiento import filtrar
+from filtro import FS, DURACION, N, filtrar
 
-FS = 22050
-DURACION = 3.0
-N = int(FS * DURACION)
 carpeta_salida = "audio_3s"
 
 carpeta_principal = "audio"

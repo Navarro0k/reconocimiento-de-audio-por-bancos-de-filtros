@@ -5,7 +5,7 @@ import math
 import time
 import core
 import utilidades
-from preprocesamiento import FS, N
+from filtro import FS, N
 from trainer import RUTA_MODELO, METODO
 
 

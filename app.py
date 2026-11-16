@@ -12,8 +12,7 @@ import core
 import trainer
 import recognizer
 import utilidades
-from filtro import normalizar
-from preprocesamiento import FS, DURACION, filtrar
+from filtro import FS, DURACION, normalizar, filtrar
 
 N_CORTES = 2   # -> 3 subbandas, como en el documento
 SEPARACION_MIN_HZ = 100   # distancia mínima entre cortes (y a 0 Hz / fs/2) para no dejar subbandas vacías

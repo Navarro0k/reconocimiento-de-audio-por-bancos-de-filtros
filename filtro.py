@@ -1,4 +1,12 @@
+"""Normalización, filtrado y parámetros de audio, antes de la FFT."""
 import numpy as np
+
+FS = 22050
+DURACION = 3.0
+N = int(FS * DURACION)
+
+USAR_FILTRO = True
+M_FILTRO = 3
 
 
 def normalizar(x):
@@ -34,3 +42,13 @@ class MovingAverageFilter:
             y[n] = suma / self.M
 
         return y
+
+
+_filtro = MovingAverageFilter(M_FILTRO)
+
+
+def filtrar(x):
+    """Media móvil de M puntos. Se aplica igual al entrenar y al reconocer (después de normalizar)."""
+    if not USAR_FILTRO:
+        return x
+    return _filtro.apply(x).astype(np.float32)
