@@ -116,7 +116,7 @@ class PestanaEntrenamiento(ctk.CTkFrame):
         self.ax.clear()
         for ave, z in self.promedios.items():
             self.ax.plot(self.frec, z, color=trainer.COLORES[ave], lw=1, label=nombre(ave))
-        tope = max(z[self.frec > 100].max() for z in self.promedios.values())
+        tope = max(z[self.frec > 100].max() for z in self.promedios.values())   # z ya es la mitad útil
         self.ax.set(xlabel="Frecuencia [Hz]", ylabel="||C(k)||_m", title="Espectros promedio",
                     xlim=(0, self.frec[-1]), ylim=(0, 4 * tope))
         self.ax.legend(loc="upper right")
@@ -195,7 +195,7 @@ class PestanaEntrenamiento(ctk.CTkFrame):
         ctk.CTkLabel(der, anchor="w", text="Distancia entre vectores promedio",
                      font=ctk.CTkFont(weight="bold")).pack(fill="x")
         aves = list(vectores)
-        filas = [[f"||E_{nombre(a)} − E_{nombre(b)}||", f"{core.distancia_euclidiana(vectores[a], vectores[b]):,.2f}"]
+        filas = [[f"||E_{nombre(a)} − E_{nombre(b)}||", f"{core.diferencia_euclidiana(vectores[a], vectores[b]):,.2f}"]
                  for i, a in enumerate(aves) for b in aves[i + 1:]]
         tabla(der, ["Par", "Distancia"], filas).pack(anchor="w")
 
@@ -334,8 +334,9 @@ class PestanaReconocimiento(ctk.CTkFrame):
             _, frec_a, z_a = trainer.cargar_promedio(ganador)
             self.cache[ganador] = (frec_a, z_a)
         frec_a, z_a = self.cache[ganador]
+        frec = utilidades.frecuencias(len(x), FS)
         self.ax.clear()
-        self.ax.plot(utilidades.frecuencias(len(x), FS), core.espectro(x), color="tab:gray", lw=0.8,
+        self.ax.plot(frec, core.espectro(x)[:len(frec)], color="tab:gray", lw=0.8,
                      label="Grabación X")
         self.ax.plot(frec_a, z_a, color=trainer.COLORES[ganador], lw=1.2,
                      label=f"Promedio {nombre(ganador)} (mínima distancia)")

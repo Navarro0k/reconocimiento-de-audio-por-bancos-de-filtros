@@ -18,11 +18,10 @@ E_A_DOC, E_B_DOC, E_X_DOC = (125 / 3, 3, 5 / 3), (11 / 3, 51, 7 / 3), (1, 41, 1)
 D_AB_DOC, D_A_DOC, D_B_DOC = 61.22, 55.66, 10.43
 
 
-def vector_energias(senal):
+def energias_de(senal):
     """Pasos 1 a 3: X(k) -> subbandas -> E = (E_1, E_2, E_3)."""
-    N = len(senal)
-    X = core.vector_completo(core.espectro(senal), N)
-    return core.vector_energias(X, K_CORTES)
+    X = core.espectro(senal)
+    return core.energia(X, K_CORTES)
 
 
 def comprobar(nombre, obtenido, esperado, tolerancia=0.005):
@@ -32,16 +31,17 @@ def comprobar(nombre, obtenido, esperado, tolerancia=0.005):
 
 
 def main():
-    E_promedio = {"A": core.vector_promedio([vector_energias(s) for s in A]),      # paso 4
-                  "B": core.vector_promedio([vector_energias(s) for s in B])}
-    E_x = vector_energias(x)
-    d = core.distancias(E_x, E_promedio)                                           # paso 5
-    tipo = core.tipo_reconocido(d)                                                 # paso 6
+    E_promedio = {"A": core.energia_promedio([energias_de(s) for s in A]),      # paso 4
+                  "B": core.energia_promedio([energias_de(s) for s in B])}
+    E_x = energias_de(x)
+    d = {clase: core.diferencia_euclidiana(E_x, E_clase)                           # paso 5
+         for clase, E_clase in E_promedio.items()}
+    tipo = min(d, key=d.get)                                                       # paso 6
 
     resultados = [
         comprobar("E_A", E_promedio["A"], E_A_DOC),
         comprobar("E_B", E_promedio["B"], E_B_DOC),
-        comprobar("||E_A - E_B||", core.distancia_euclidiana(E_promedio["A"], E_promedio["B"]), D_AB_DOC),
+        comprobar("||E_A - E_B||", core.diferencia_euclidiana(E_promedio["A"], E_promedio["B"]), D_AB_DOC),
         comprobar("E_x", E_x, E_X_DOC),
         comprobar("d_A", d["A"], D_A_DOC),
         comprobar("d_B", d["B"], D_B_DOC),

@@ -26,17 +26,17 @@ for ave in carpetas_aves:
     fs, espectros = trainer.espectros_de_carpeta(ruta)
     if not espectros:
         continue
-    frec = utilidades.frecuencias(2 * (len(espectros[0]) - 1), fs)
-    Zp = trainer.espectro_promedio(espectros)
-    promedios[ave] = (frec, Zp)
+    frec = utilidades.frecuencias(len(espectros[0]), fs)
+    Zp = core.espectro_promedio(espectros)
+    promedios[ave] = (frec, Zp[:len(frec)])
     indices = utilidades.indices_de_corte(frec, cortes_hz)
-    energias = core.vector_energias(core.vector_completo(Zp, 2 * (len(Zp) - 1)), indices)
-    limites = [0] + list(indices) + [len(Zp)]
+    energias = core.energia(Zp, indices)
+    limites = [0] + list(indices) + [len(frec)]
 
     fig, ax = plt.subplots(figsize=(12, 5))
     for Z in espectros:
-        ax.plot(frec, Z, color="gray", alpha=0.06, lw=0.5)
-    ax.plot(frec, Zp, color=colores[ave], lw=1.2, label="espectro promedio")
+        ax.plot(frec, Z[:len(frec)], color="gray", alpha=0.06, lw=0.5)
+    ax.plot(frec, Zp[:len(frec)], color=colores[ave], lw=1.2, label="espectro promedio")
     for c in cortes_hz:
         ax.axvline(c, color="k", ls="--", lw=0.8)
     for i, E in enumerate(energias):
@@ -45,7 +45,7 @@ for ave in carpetas_aves:
                 transform=ax.get_xaxis_transform(), ha="center", va="top")
     ax.set(title=f"Espectro de la FFT - {ave.replace('Carpeta_', '')} ({len(espectros)} audios)",
            xlabel="Frecuencia [Hz]", ylabel="||X(k)||", xlim=(0, frec[-1]),
-           ylim=(0, 4 * Zp[frec > 100].max()))
+           ylim=(0, 4 * Zp[:len(frec)][frec > 100].max()))
     ax.legend(loc="upper right", bbox_to_anchor=(1, 0.9))
     fig.tight_layout()
     fig.savefig(os.path.join(carpeta_salida, f"espectro_{ave}.png"), dpi=130)

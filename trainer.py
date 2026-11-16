@@ -21,7 +21,7 @@ CRITERIO_PARTICION = "acierto"
 
 
 def espectros_de_carpeta(ruta):
-    """(fs, [||X(k)|| de cada .wav de la carpeta])"""
+    """(fs, [||X(k)|| de cada .wav de la carpeta, k = 0..N-1])"""
     fs, lista = None, []
     for archivo in sorted(os.listdir(ruta)):
         if archivo.endswith(".wav"):
@@ -30,17 +30,13 @@ def espectros_de_carpeta(ruta):
     return fs, lista
 
 
-def espectro_promedio(lista_espectros):
-    """||C(k)||_m = promedio de los espectros de una ave. Solo para graficar: no entra al modelo."""
-    return np.mean(lista_espectros, axis=0)
-
-
 def cargar_promedio(ave):
     """(fs, frec, ||C(k)||_m) de una sola ave. FileNotFoundError si no hay audios."""
     fs, lista = espectros_de_carpeta(os.path.join(CARPETA, ave))
     if not lista:
         raise FileNotFoundError(f"No hay audios en '{CARPETA}/{ave}'.")
-    return fs, utilidades.frecuencias(2 * (len(lista[0]) - 1), fs), espectro_promedio(lista)
+    frec = utilidades.frecuencias(len(lista[0]), fs)
+    return fs, frec, core.espectro_promedio(lista)[:len(frec)]
 
 
 def cargar_espectros():
@@ -53,15 +49,16 @@ def cargar_espectros():
         fs_ave, lista = espectros_de_carpeta(ruta)
         if lista:
             fs, espectros[ave] = fs_ave, lista
-            frec = utilidades.frecuencias(2 * (len(lista[0]) - 1), fs)
+            frec = utilidades.frecuencias(len(lista[0]), fs)
     if not espectros:
         raise FileNotFoundError(f"No hay audios en '{CARPETA}'. Ejecuta antes audioAnalizer.py.")
     return fs, frec, espectros
 
 
 def promedios_de(espectros):
-    """{ave: ||C(k)||_m}: espectro promedio de cada ave (solo para graficar)."""
-    return {ave: espectro_promedio(lista) for ave, lista in espectros.items()}
+    """{ave: ||C(k)||_m}: espectro promedio de cada ave (mitad útil, solo para graficar)."""
+    return {ave: core.espectro_promedio(lista)[:len(lista[0]) // 2 + 1]
+            for ave, lista in espectros.items()}
 
 
 def cargar_promedios():
@@ -73,24 +70,23 @@ def cargar_promedios():
 def vectores_por_audio(frec, espectros, cortes_hz):
     """{ave: [vector de energías [E_1 ... E_S] de cada audio]}"""
     indices = utilidades.validar_cortes(frec, cortes_hz)
-    N = 2 * (len(frec) - 1)   # puntos de la FFT completa
-    return {ave: [core.vector_energias(core.vector_completo(z, N), indices) for z in lista]
+    return {ave: [core.energia(z, indices) for z in lista]
             for ave, lista in espectros.items()}
 
 
 def vectores_promedio(frec, espectros, cortes_hz):
     """{ave: E_ave}: promedio de los vectores de energía de los audios de cada ave."""
-    return {ave: core.vector_promedio(v) for ave, v in vectores_por_audio(frec, espectros, cortes_hz).items()}
+    return {ave: core.energia_promedio(v) for ave, v in vectores_por_audio(frec, espectros, cortes_hz).items()}
 
 
 def evaluar(frec, espectros, cortes_hz):
     """{ave: fracción de sus audios de entrenamiento que quedan más cerca de su propio vector}"""
     por_audio = vectores_por_audio(frec, espectros, cortes_hz)
-    promedios = {ave: core.vector_promedio(v) for ave, v in por_audio.items()}
+    promedios = {ave: core.energia_promedio(v) for ave, v in por_audio.items()}
     aciertos = {}
     for ave, vectores in por_audio.items():
         bien = sum(1 for E in vectores
-                   if min(promedios, key=lambda a: core.distancia_euclidiana(E, promedios[a])) == ave)
+                   if min(promedios, key=lambda a: core.diferencia_euclidiana(E, promedios[a])) == ave)
         aciertos[ave] = bien / len(vectores)
     return aciertos
 
@@ -98,7 +94,7 @@ def evaluar(frec, espectros, cortes_hz):
 def separacion(frec, espectros, cortes_hz):
     """Menor distancia ||E_A - E_B|| entre los vectores promedio de dos aves distintas."""
     E_promedio = vectores_promedio(frec, espectros, cortes_hz)
-    return min(core.distancia_euclidiana(E_promedio[a], E_promedio[b])
+    return min(core.diferencia_euclidiana(E_promedio[a], E_promedio[b])
                for a, b in itertools.combinations(E_promedio, 2))
 
 

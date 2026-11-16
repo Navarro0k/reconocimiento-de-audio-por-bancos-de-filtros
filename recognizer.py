@@ -54,9 +54,10 @@ def reconocer(x, cortes_hz, E_promedio):
     Devuelve (tipo, d, E_x): el ave reconocida, {ave: distancia} y el vector de energías de x.
     """
     N = len(x)
-    X = core.vector_completo(core.espectro(x), N)                          # 1. ||X(k)||, k = 0..N-1
+    X = core.espectro(x)                                                   # 1. X(k) = |FFT(x)|
     k_cortes = utilidades.indices_de_corte(utilidades.frecuencias(N, FS), cortes_hz)
-    E_x = core.vector_energias(X, k_cortes)                                # 2 y 3. E_x = (E_1, E_2, E_3)
-    d = core.distancias(E_x, E_promedio)                                   # 5. d_ave = ||E_x - E_ave||
-    tipo = core.tipo_reconocido(d)                                         # 6. menor distancia
+    E_x = core.energia(X, k_cortes)                                        # 2 y 3. E_x = (E_1, E_2, E_3)
+    d = {ave: core.diferencia_euclidiana(E_x, E_ave)                       # 5. d_ave = ||E_x - E_ave||
+         for ave, E_ave in E_promedio.items()}
+    tipo = min(d, key=d.get)                                               # 6. menor distancia
     return tipo, d, E_x
