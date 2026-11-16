@@ -31,16 +31,6 @@ def cargar_audio(ruta):
         raise ValueError(resultado.stderr.decode(errors="ignore").strip() or "vacio")
     return np.frombuffer(resultado.stdout, dtype=np.float32)
 
-def mejor_ventana(x):
-    paso = FS // 4
-    energia_acumulada = np.concatenate(([0.0], np.cumsum(x.astype(np.float64) ** 2)))
-    mejor, inicio = -1.0, 0
-    for i in range(0, len(x) - N + 1, paso):
-        energia = energia_acumulada[i + N] - energia_acumulada[i]
-        if energia > mejor:
-            mejor, inicio = energia, i
-    return x[inicio:inicio + N]
-
 def analizar_duraciones():
     duraciones = []
     corruptos = []
@@ -103,7 +93,7 @@ def recortar_todo(corruptos):
             if len(x) < N or np.max(np.abs(x)) < 1e-4:
                 descartados += 1
                 continue
-            seg = filtrar(normalizar(mejor_ventana(x)))
+            seg = filtrar(normalizar(x[:N]))
             wavfile.write(os.path.join(destino, archivo.replace(".mp3", ".wav")), FS, (seg * 32767).astype(np.int16))
             ok += 1
         print(f"{ave}: {ok} recortados | {descartados} descartados")
