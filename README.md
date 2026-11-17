@@ -130,7 +130,7 @@ API_KEY_XENOCANTO=tu_clave_aqui
 
 ## ▶️ Uso
 
-**1. Descargar las grabaciones** (hasta 100 por especie, calidad A, mínimo 3 s)
+**1. Descargar las grabaciones** (hasta 92 por especie, calidad A, mínimo 3 s)
 
 ```bash
 python DownloaderData.py

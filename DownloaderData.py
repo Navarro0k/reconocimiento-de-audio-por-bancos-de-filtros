@@ -23,7 +23,7 @@ aves = {
     "Bichofue": ("Pitangus", "sulphuratus"),
 }
 
-cantidad_descargas = 100
+cantidad_descargas = 92
 duracion_minima_requerida = 3.0
 
 for nombre_ave, (gen, sp) in aves.items():
